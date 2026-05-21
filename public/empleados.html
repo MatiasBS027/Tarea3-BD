@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Empleados - Sistema de Vacaciones</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="empleados-page">
+    <div class="app-layout">
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <span class="sidebar-kicker">Vacaciones TEC</span>
+                <h2>Empleados</h2>
+                <p>Accesos principales</p>
+            </div>
+
+            <nav class="sidebar-nav">
+                <button id="btnInsertar" class="sidebar-btn sidebar-btn-primary" type="button">Insertar empleado</button>
+                <button id="btnSidebarMovimientos" class="sidebar-btn" type="button">Movimientos</button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <button id="logoutBtn" class="sidebar-btn sidebar-btn-ghost" type="button">Cerrar sesión</button>
+            </div>
+        </aside>
+
+        <main class="page-content empleados-shell">
+            <header class="empleados-header">
+                <div>
+                    <h1>Lista de empleados</h1>
+                    <p class="subtitle">Consulta, filtro y administración básica de empleados</p>
+                </div>
+            </header>
+
+            <section class="panel filtros-panel">
+                <div class="panel-title">
+                    <h2>Filtrar empleados</h2>
+                    <span id="contador" class="counter">0 resultados</span>
+                </div>
+
+                <div class="filter-row">
+                    <input
+                        id="filtro"
+                        type="text"
+                        placeholder="Escribe un nombre o una cédula"
+                        autocomplete="off"
+                    >
+                    <button id="buscarBtn" class="primary-btn" type="button">Filtrar</button>
+                    <button id="limpiarBtn" class="ghost-btn" type="button">Limpiar</button>
+                </div>
+
+                <div id="mensaje" class="status info">
+                    Deja el filtro vacío para ver todos los empleados.
+                </div>
+            </section>
+
+            <section id="insertModal" class="delete-modal hidden" role="dialog" aria-modal="true" aria-labelledby="insertModalTitle">
+                <div class="delete-modal-card">
+                    <div class="panel-title">
+                        <h2 id="insertModalTitle">Insertar nuevo empleado</h2>
+                        <button id="closeInsertModalBtn" type="button" class="ghost-btn">X</button>
+                    </div>
+
+                    <form id="insertForm" class="editar-form">
+                        <div class="editar-grid">
+                            <div class="editar-field">
+                                <label for="insertDocumento">Documento</label>
+                                <input id="insertDocumento" type="text" required pattern="[0-9]+" minlength="3" maxlength="32">
+                            </div>
+                            <div class="editar-field">
+                                <label for="insertNombre">Nombre</label>
+                                <input id="insertNombre" type="text" required minlength="3" maxlength="128">
+                            </div>
+                            <div class="editar-field">
+                                <label for="insertPuesto">Puesto</label>
+                                <select id="insertPuesto" required>
+                                    <option value="">Cargando puestos...</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="editar-actions">
+                            <button type="submit" class="primary-btn">Crear empleado</button>
+                            <button id="cancelInsertBtn" type="button" class="ghost-btn">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <section class="panel table-panel">
+                <table class="employee-table">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Documento</th>
+                            <th>Puesto</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="empleadosBody">
+                        <tr>
+                            <td colspan="5" class="empty-state">Todavía no hay datos cargados</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <section id="detallePanel" class="panel detalle-panel hidden">
+                <div class="panel-title">
+                    <h2 id="detalleTitulo">Detalle del empleado</h2>
+                </div>
+                <div id="detalleEstado" class="status info">Selecciona un empleado para ver su detalle.</div>
+                <div id="detalleContenido" class="detalle-contenido"></div>
+
+                <form id="editarForm" class="editar-form hidden">
+                    <h3>Editar empleado</h3>
+
+                    <div class="editar-grid">
+                        <div class="editar-field">
+                            <label for="documentoDespues">Documento (después)</label>
+                            <input id="documentoDespues" type="text" required minlength="3" maxlength="32" pattern="[0-9]+">
+                        </div>
+
+                        <div class="editar-field">
+                            <label for="nombreDespues">Nombre (después)</label>
+                            <input id="nombreDespues" type="text" required minlength="3" maxlength="128">
+                        </div>
+
+                        <div class="editar-field">
+                            <label for="idPuestoDespues">Puesto (después)</label>
+                            <select id="idPuestoDespues" required>
+                                <option value="">Cargando puestos...</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="editar-actions">
+                        <button type="submit" class="primary-btn">Guardar cambios</button>
+                        <button id="cancelarEdicionBtn" type="button" class="ghost-btn">Cancelar</button>
+                    </div>
+                </form>
+            </section>
+
+            <section id="deleteModal" class="delete-modal hidden" role="dialog" aria-modal="true" aria-labelledby="deleteModalTitle">
+                <div class="delete-modal-card">
+                    <div class="panel-title">
+                        <h2 id="deleteModalTitle">Confirmar borrado lógico</h2>
+                        <button id="closeDeleteModalBtn" type="button" class="ghost-btn">X</button>
+                    </div>
+
+                    <p id="deleteDocumentoTexto" class="delete-modal-text">
+                        ¿Deseas eliminar lógicamente este empleado?
+                    </p>
+
+                    <div id="deleteModalEstado" class="status info">
+                        Puedes confirmar el borrado o cancelar la acción.
+                    </div>
+
+                    <div class="editar-actions">
+                        <button id="confirmDeleteBtn" type="button" class="primary-btn">Confirmar borrado</button>
+                        <button id="cancelDeleteBtn" type="button" class="ghost-btn">Cancelar</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script type="module" src="js/empleados.js"></script>
+</body>
+</html>

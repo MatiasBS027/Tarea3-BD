@@ -1,0 +1,69 @@
+<!-- catalogos--> 
+<Catalogo> 
+
+<TiposDeJornada> 
+<TipoDeJornada> id=”1” Nombre=”Diurno” HoraInicio=”6:00” HoraFin=”14:00”/> 
+<TipoDeJornada> id=”2” Nombre=”Vespertino” HoraInicio=”14:00” HoraFin=”22:00”/> 
+<TipoDeJornada> id=”3” Nombre=”Nocturno” HoraInicio=”22:00” HoraFin=”06:00”/> 
+</TiposDeJornada> 
+
+<Puestos> 
+    <Puesto Nombre="Electricista" SalarioXHora="1200"/> 
+    <Puesto Nombre="Auxiliar de Laboratorio" SalarioXHora="1250"/> 
+    <Puesto Nombre="Operador de Maquina" SalarioXHora="1025"/> 
+    .... 
+</Puestos> 
+
+<Feriados> 
+    <Feriado Id="1" Nombre="Dia de Juan Santamaria" Fecha=”20220411”/> 
+    <Feriado Id="2" Nombre="Jueves Santo" Fecha=”20220414”/> 
+    <Feriado Id="3" Nombre="Viernes Santo" Fecha=”20220415”/> 
+    <Feriado Id="4" Nombre="Dia del trabajo" Fecha=”20220501”/> 
+... 
+</ Feriados > 
+<TiposDeMovimiento> 
+<TipoDeMovimiento Id="1" Nombre="Credito Horas ordinarias" /> 
+<TipoDeMovimiento Id="2" Nombre="Credito Horas Extra Normales" /> 
+<TipoDeMovimiento Id="3" Nombre="Credito Horas Extra Dobles" /> 
+
+Inicio Mejorarlo ... 
+
+<TipoDeMovimiento Id="4" Nombre="Caja" /> 
+<TipoDeMovimiento Id="4" Nombre="Deducciones Asociacion Solidarista" /> 
+<TipoDeMovimiento Id="5" Nombre="Deduccion Ahorro Olbigatorio" /> 
+... 
+</TiposDeMovimiento> 
+
+<TiposDeDeduccion> 
+<TipoDeDeduccion Id="1" Nombre="Obligatorio de Ley" Obligatorio="Si" Porcentual="Si" 
+Valor="0.095" /> 
+<TipoDeDeduccion Id="2" Nombre="Ahorro Asociacion Solidarista" Obligatorio="No" 
+Porcentual="Si" Valor="0.05" /> 
+<TipoDeDeduccion Id="3" Nombre="Ahorro Vacacional" Obligatorio="No" Porcentual="No" 
+Valor="0" /> 
+<TipoDeDeduccion Id="4" Nombre="Pension Alimenticia" Obligatorio="No" Porcentual="No" 
+Valor="0" /> 
+... 
+</TiposDeDeduccion> 
+
+
+<UsuariosAdministrador> 
+<!—Usuario tipo 1 es administrador, tipo 2 es empleado> 
+<Usuario pwd="1234" username="Goku" /> 
+<Usuario pwd="1234" username="Willy" /> 
+</UsuariosAdmnistrador> 
+
+<!— En la BD en CE Usuarios se debe guardar tipo="1” si es administrador =”2” >  
+<!— si es empleado > 
+
+---- fin mejorarlo 
+
+<TiposdeEvento> 
+<TipoEvento> Id=”1” Nombre: “login”/> 
+<TipoEvento> Id=”2” Nombre: “logout”/> 
+<TipoEvento> Id=”3” Nombre: “Listar empleados”/> 
+<TipoEvento> Id=”4” Nombre: “Listar empleados con filtro”/> 
+<TipoEvento> Id=”5” Nombre: “Insertar empleado”/> 
+... 
+<\TiposdeEvento> 
+<\Catalogo>
