@@ -163,3 +163,98 @@ Clonar los SPs base desde Tarea2-BD y adaptarlos a PlanillaDB: sp_GetError, sp_L
 Implementar los SPs de empleados que ya consumen los controladores: sp_InsertarEmpleado, sp_GetEmpleados, sp_GetEmpleadoById, sp_UpdateEmpleado, sp_DeleteEmpleado.
 Empezar la lógica de planilla: sp_CrearCalendario, sp_ProcesarAsistencia, sp_ProcesarPlanillaSemanal.
 Definir el XML final de carga de catálogos para reemplazar el scaffold de sp_CargarCatalogosXML.
+
+# Bitácora de Sesión
+
+Fecha: 02/06/2026
+
+Inicio: [14:00] | Fin: [15:30] || Total: [1 hora 30 minutos]
+
+Presente: Matías Benavides Sandoval
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+¿QUÉ HICIMOS HOY?
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Se revisó el modelo del compañero Sebas (ModeloSebas.jpeg + 1/2/3.jpeg) y se comparó contra nuestro modelo conceptual previo de 29 tablas.
+Se aclararon con Sebas 7 dudas de su modelo: Empleado.idUsuario 1:1, PlanillaSemanal con 3 columnas de horas (Ordinarias/ExtraNormal/ExtraDoble), Comprobante.Tipo sin definir, Mes.NumJueves 4-5, TipoDeduccion.Valor siempre REAL, DeduccionXMes.MontoTotal precalculado al cierre, y el manejo de Feriado/extras dobles aún no lo había hecho.
+Se adoptó el modelo de Sebas (23 tablas) como guía estructural y se le aplicaron 8 correcciones justificadas una a una con cita a Especificacion.pdf, llegando al modelo final de 20 tablas y 22 FKs.
+Se reescribió SQL/SCRIPTS/Tablas.sql en formato SSMS con las 20 tablas, sin seed inline, asumiendo que la base PlanillaDB ya existe.
+Se reescribió SQL/SCRIPTS/Trigger.sql con el trg_Empleado_Insert_AssignMandatoryDeductions al estilo de Sebas (AFTER INSERT sobre Empleado, cross-join con TipoDeduccion WHERE EsObligatoria=1, copia td.Valor a DeduccionEmpleado.MontoFijo).
+Se reescribió AGENTS.md para que refleje el modelo de 20 tablas, con una tabla de las 8 correcciones citadas al PDF, las convenciones de Tarea2-BD, el orden de SPs a implementar, y los riesgos identificados.
+Se validó todo el script contra localhost\SQLEXPRESS: 20 tablas, 22 FKs, trigger dispara correctamente con un INSERT de prueba (1 obligatoria → 1 fila DeduccionEmpleado; 2 obligatorias → 2 filas; EsObligatoria=0 ignorada).
+Se borraron 6 imágenes que ya no aportan (4 de Sebas, Modelo Conceptual.png, SQL/SCRIPTS/image.png). Quedó únicamente ModeloFisico.jpeg como referencia visual del modelo final.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PROBLEMAS DETECTADOS Y CÓMO SE RESOLVIERON
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Problema: nuestro modelo conceptual previo de 29 tablas no coincidía con el modelo del compañero ni con varias decisiones de diseño ya consensuadas con él.
+Causa: se construyó partiendo de un diagrama propio en lugar del de Sebas.
+Solución: se adoptó el modelo de Sebas como guía y se documentó cada desviación con cita explícita a Especificacion.pdf (página y sección) en AGENTS.md §1.3.
+
+Problema: el trigger anterior estaba pensado para una jerarquía de 5 tablas de deducciones (DeduccionXLEy, DeduccionXPorcentaje, DeduccionXMontoFijo, etc.) que el modelo de Sebas no usa.
+Causa: el modelo de Sebas unifica todas las deducciones en una sola TipoDeduccion con flags EsObligatoria/EsPorcentual, y en una sola DeduccionEmpleado.
+Solución: se reescribió el trigger para que haga cross-join de INSERT con TipoDeduccion WHERE EsObligatoria=1, copiando td.Valor a DeduccionEmpleado.MontoFijo (sea % o monto fijo, el SP decide luego cómo aplicarlo).
+
+Problema: el commit b70e438 (reescribir tablas) quedó con el modelo de Sebas (23 tablas) en vez del modelo corregido (20 tablas) porque se cometió sin git add explícito y el contenido del working dir nunca pasó al index.
+Causa: tras un git reset --soft HEAD~1, el working dir tenía la versión corregida pero el index conservaba la versión vieja de Sebas. git commit usó el index, no el working dir.
+Solución: se deshicieron los dos commits con git reset --soft b78974a, se stagió explícitamente solo SQL/SCRIPTS/{Tablas.sql,Trigger.sql}, se cometió como aee54bb, y se cometió AGENTS.md por separado como 8e18ec3. Lección: siempre correr git diff --staged antes de git commit cuando viene de un soft reset.
+
+Problema: el primer amend tras detectar el error de b70e438 se aplicó al commit equivocado (al de AGENTS.md en lugar del de SQL), mezclando Tablas.sql dentro del commit de docs.
+Causa: se usó HEAD sin verificar a qué commit apuntaba.
+Solución: se volvió a hacer git reset --soft b78974a y se recomitió en el orden correcto: primero SQL, luego AGENTS.md.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+DUDAS Y DIVERGENCIAS DE CRITERIO
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Sigue pendiente decidir el comportamiento del SP de procesamiento de asistencia cuando una MarcaAsistencia no tiene un HorarioJornada asignado para esa semana: ¿se trata como fuera de jornada (todo el tiempo es extra), se rechaza, o se registra sin generar MovHoras? Documentado en AGENTS.md §7.
+Sigue pendiente definir la estructura final del XML de carga de catálogos y del XML de operación. sp_CargarCatalogosXML sigue como scaffold en SQL/SCRIPTS/CargarDatosXML.sql.
+Sigue pendiente el mecanismo de generación del PDF del Comprobante: la columna PlanillaSemanal.Comprobante es VARBINARY(MAX) NULL, pero ningún SP la llena todavía. Decidir si se genera desde SQL Server, desde el backend, o queda como NULL hasta que el usuario suba el PDF.
+Sigue abierta la decisión de cómo distinguir en la UI (grid de R04) si una MarcaAsistencia cayó en domingo o feriado, ya que el PDF pide mostrar los movimientos por día pero no cómo se etiquetan los días especiales.
+Se confirmó que el modelo de 20 tablas es estable y no debería requerir más cambios estructurales durante el resto del proyecto: cubre R01-R07, las reglas de horas (ordinarias, extras 1.5x, extras dobles 2x en domingo/feriado), la regla "una asistencia hasta 3 movimientos", semana viernes→jueves, deducciones porcentuales/fijas, asignación automática de obligatorias y trazabilidad completa.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+AVANCE DEL CÓDIGO
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Se reescribió SQL/SCRIPTS/Tablas.sql con 20 tablas y 22 FKs en formato SSMS, USE [PlanillaDB] al inicio, sin seed inline y sin DROP/CREATE DATABASE. Tablas: BitacoraEvento, DBError, DeduccionEmpleado, DeduccionXMes, Empleado, Feriado, HorarioJornada, MarcaAsistencia, Mes, MovHoras (nueva), MovPlanilla, PlanillaMensual, PlanillaSemanal, Puesto, Semana, TipoDeduccion, TipoEvento, TipoJornada, TipoMovimiento, Usuario. Se quitaron Departamento, TipoDocIdentidad, Comprobante(tabla) y ComprobanteHora.
+Se reescribió SQL/SCRIPTS/Trigger.sql con el trg_Empleado_Insert_AssignMandatoryDeductions en formato SSMS, AFTER INSERT sobre dbo.Empleado, SET XACT_ABORT ON, y el cuerpo que hace cross-join de inserted con TipoDeduccion WHERE EsObligatoria=1, insertando (idEmpleado=i.id, idTipoDeduccion=td.id, MontoFijo=td.Valor, FechaInicio=i.FechaContratacion, FechaFin='99991231').
+Se reescribió AGENTS.md con: §1.1 origen del modelo (Sebas como guía + 8 correcciones), §1.2 tabla con las 20 tablas y sus notas, §1.3 tabla con las 8 correcciones citadas al PDF, §2 convenciones de naming/tipos/constraints/plantilla SP, §3 reglas de negocio (semana, horas, deducciones, cierre), §4 arquitectura, §5 orden sugerido de SPs, §6 workflow del agente, §7 riesgos identificados y §8 anexo de archivos.
+Se validó contra localhost\SQLEXPRESS: las 20 tablas se crean en orden alfabético, las 22 FKs se aplican correctamente, y el trigger se dispara con un INSERT de prueba. Se borraron los datos de prueba con TRUNCATE y se reseteó IDENTITY.
+Se eliminaron 6 imágenes del repositorio: ModeloSebas.jpeg, ModeloSebas1.jpeg, ModeloSebas2.jpeg, ModeloSebas3.jpeg, Modelo Conceptual.png y SQL/SCRIPTS/image.png (esta última era un leftover de 77KB de un commit previo del usuario). Quedó únicamente ModeloFisico.jpeg como evidencia visual del modelo final.
+Se dejaron sin pushear 2 commits, por instrucción explícita: aee54bb feat(sql): reescribir tablas y creacion del trigger, y 8e18ec3 docs(agents): actualizar al modelo corregido de 20 tablas.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+MORALEJAS / BUENAS PRÁCTICAS
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Cuando un compañero ya tiene un modelo en curso, adoptarlo como guía y justificar cada desviación contra el spec (con página y sección citadas) es más rápido y más defendible que rehacerlo desde cero.
+Tras un git reset --soft, siempre correr git diff --staged antes de git commit: el working dir y el index pueden divergir silenciosamente, y un commit accidental puede terminar registrando contenido viejo.
+Diferenciar en commits separados los cambios al esquema SQL, los cambios a la guía operativa (AGENTS.md) y los cambios a archivos de soporte (bitácora, imágenes). Mezclarlos dificulta revertir y revisar.
+Para una base de datos, el DROP/CREATE DATABASE debe vivir en un archivo separado (VaciarDB.sql) que corre antes del script de tablas, para no contaminar el script de esquema con dependencias de master.
+Mantener la bitácora de sesión al día (en vez de escribirla toda al final) ayuda a no perder el rastro de problemas y decisiones; en esta sesión se retrasó la actualización hasta el final por instrucción del usuario, pero en general conviene hacerlo al cerrar cada bloque de trabajo.
+Antes de borrar evidencia del compañero (imágenes, diagramas), confirmar explícitamente que ya no se va a necesitar. En esta sesión los ModeloSebas*.jpeg se mantuvieron hasta que el modelo corregido estuvo validado y commiteado.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PRÓXIMA SESIÓN: ¿QUÉ SIGUE?
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Definir el XML de carga de catálogos y reemplazar el scaffold de sp_CargarCatalogosXML con la implementación real, idempotente con WHERE NOT EXISTS o MERGE.
+Decidir el comportamiento de MarcaAsistencia sin HorarioJornada y documentarlo en AGENTS.md §7 antes de implementar sp_ProcesarAsistencia.
+Implementar los SPs en el orden de AGENTS.md §5, empezando por sp_Login/sp_Logout y sp_GetError (este último con dependencia de DBError y Error, revisar si la tabla Error sigue siendo necesaria en el modelo final).
+Definir el mecanismo de generación del PDF del Comprobante y el SP que lo asigna a PlanillaSemanal.Comprobante (VARBINARY MAX NULL).
+(Pendiente desde la sesión anterior) Clonar los SPs base desde Tarea2-BD y adaptarlos a PlanillaDB: sp_GetError, sp_Login, sp_Logout, sp_InsertarEmpleado, sp_GetEmpleados, sp_GetEmpleadoById, sp_UpdateEmpleado, sp_DeleteEmpleado.
