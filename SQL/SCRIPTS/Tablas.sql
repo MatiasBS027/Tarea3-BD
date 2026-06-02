@@ -29,20 +29,14 @@
 --   de operacion original del profesor sugiriera ids manuales. El SP de
 --   carga sp_CargarCatalogosXML queda como scaffold pendiente del XML
 --   definitivo (ver CargarDatosXML.sql).
+--
+-- Nota sobre uso:
+--   Este script NO crea ni recrea la base. Asume que [PlanillaDB] ya
+--   existe (al igual que el CrearBD.sql de Tarea2-BD asume [VacacionesDB]).
+--   La creacion/recarga de la base se hace por separado. La carga de
+--   catalogos (incluyendo los codigos de Error y los TipoEvento) la hace
+--   sp_CargarCatalogosXML, no este archivo.
 -- =====================================================================
-
-USE [master];
-GO
-
-IF DB_ID(N'PlanillaDB') IS NOT NULL
-BEGIN
-    ALTER DATABASE [PlanillaDB] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
-    DROP DATABASE [PlanillaDB];
-END
-GO
-
-CREATE DATABASE [PlanillaDB];
-GO
 
 USE [PlanillaDB];
 GO
@@ -680,49 +674,3 @@ BEGIN
 END;
 GO
 
--- =====================================================================
--- SEED MINIMO: catalogos operativos (Tarea2-BD los sembraba en CargarXML;
--- aqui dejamos una semilla inline para que la app pueda correr sin XML).
--- =====================================================================
-
--- Codigos de error que el backend y los SPs esperan resolver.
-IF NOT EXISTS (SELECT 1 FROM [dbo].[Error] WHERE [Codigo] = 50001)
-    INSERT INTO [dbo].[Error] ([Codigo], [Descripcion]) VALUES
-        (50001, 'Username no existe'),
-        (50002, 'Password no existe'),
-        (50003, 'Login deshabilitado'),
-        (50004, 'Empleado con ValorDocumentoIdentidad ya existe en insercion'),
-        (50005, 'Empleado con mismo nombre ya existe en insercion'),
-        (50006, 'Empleado con ValorDocumentoIdentidad ya existe en actualizacion'),
-        (50007, 'Empleado con mismo nombre ya existe en actualizacion'),
-        (50008, 'Error de base de datos'),
-        (50009, 'Nombre de empleado no alfabetico'),
-        (50010, 'Valor de documento de identidad no alfabetico'),
-        (50011, 'Monto del movimiento rechazado pues si se aplicar el saldo seria negativo');
-GO
-
--- Tipos de evento basicos que la app consulta por nombre.
-IF NOT EXISTS (SELECT 1 FROM [dbo].[TipoEvento] WHERE [Nombre] = 'Login Exitoso')
-BEGIN
-    SET IDENTITY_INSERT [dbo].[TipoEvento] ON;
-    INSERT INTO [dbo].[TipoEvento] ([id], [Nombre]) VALUES
-        (1, 'Login Exitoso'),
-        (2, 'Login No Exitoso'),
-        (3, 'Login deshabilitado'),
-        (4, 'Logout'),
-        (5, 'Insercion no exitosa'),
-        (6, 'Insercion exitosa'),
-        (7, 'Update no exitoso'),
-        (8, 'Update exitoso'),
-        (9, 'Intento de borrado'),
-        (10, 'Borrado exitoso'),
-        (11, 'Consulta con filtro de nombre'),
-        (12, 'Consulta con filtro de cedula'),
-        (13, 'Intento de insertar movimiento'),
-        (14, 'Insertar movimiento exitoso');
-    SET IDENTITY_INSERT [dbo].[TipoEvento] OFF;
-END
-GO
-
-PRINT 'PlanillaDB creada correctamente.';
-GO
