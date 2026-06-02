@@ -1,476 +1,293 @@
+# Especificación del Proyecto
 
-# ITCR – Escuela de Ing. en Computación – Base de Datos 1 – Prof. fquiros – Mayo 2026
+> **Fuente única de verdad**: `Especificacion.pdf` (ITCR – Escuela de Ing. en Computación – Base de Datos 1 – Prof. fquiros – Mayo 2026).
+> Este documento es una transcripción limpia del PDF. Todo lo que no esté aquí NO es requisito del proyecto.
 
-Proyecto que se realiza como 3era y opcionalmente como 4ta (Si en la entrega para la
-3era fue incompleta o incorrecta)
+---
 
-Uno. Objetivos: Implementar una base de datos física, así como escribir el código en capa
-lógica y física, para la implementación de 2 sitios web (para administradores y empleados),
-para el mantenimiento de entidades (CRUD) y la realización de consultas. Escribir en SQL un
-script que realice una simulación la operación del sistema por varios meses.
+## Uno. Objetivos
+
+Implementar una base de datos física, así como escribir el código en capa lógica y física, para la implementación de 2 sitios web (para administradores y empleados), para el mantenimiento de entidades (CRUD) y la realización de consultas. Escribir en SQL un script que realice una simulación la operación del sistema por varios meses.
+
+---
 
 ## Dos. Descripción
 
-Control de asistencia y Planilla Obrera.
+### Control de asistencia y Planilla Obrera
 
-Los obreros en una fábrica tienen horarios rotativos que cambian semana a semana, según el
-tipo de jornada (matutina, vespertina o nocturna). La fábrica nunca se detiene, así que los
-horarios incluyen fines de semana y días feriados. Los obreros trabajan 6 días, descansan un
-día.
+Los obreros en una fábrica tienen horarios rotativos que cambian semana a semana, según el tipo de jornada (matutina, vespertina o nocturna). La fábrica nunca se detiene, así que los horarios incluyen fines de semana y días feriados. Los obreros trabajan 6 días, descansan un día.
 
-El salario por hora, usado para calcular el salario semanal, depende del puesto y la jornada de
-trabajo, hay 3 tipos de jornadas: jornada diurna (cuando inicia a las 6 am y es por 8 horas), y
-otro para jornada vespertina (que inicia a las 2 pm y es de 8 horas) y para jornada nocturna
-(inicia a las 7 pm y es de 8 horas).  El valor de la hora extra es 1.5 del valor de la hora
-ordinaria, siempre que la hora trabajada no sea en domingo ni feriado, en cuyo caso es 2.0 del
-valor de la hora ordinaria. Una hora trabajada extraordinaria, se determina si la hora de marca
-de salida del empleado es superior a la hora de salida según el tipo de jornada en la semana
-actual.
+### Salario
 
-El pago del salario es semanal, aunque el reporte a la caja del seguro es de manera mensual.
-Para el corte mensual, el cierre es el último jueves de cada mes. O sea que el salario mensual,
-que se reporta a la caja, es el que va desde la semana que inicia el ultimo viernes del mes
-anterior, al último jueves del presente mes. Usualmente el mes será de 4 semanas, pero habrá
-algunos de 5 semanas. Tomar en cuenta, que, según leyes de Costa Rica, la deducción por
-aporte a la Caja, aguinaldo y liquidaciones se hacen según el salario mensual, aunque este se
-pague en tractos semanalmente.
+El salario por hora depende del puesto y la jornada. Hay **3 tipos de jornadas** (todas de 8 horas):
 
-La información de entrada de la planilla es un archivo xml, que contiene para cada día de la
-semana laboral, la información de asistencia de los empleados: la fecha, la identificación del
-empleado, la marca de hora de entrada y la marca de la hora de salida. El cálculo de
-la planilla semanal, se realiza todos los jueves a las 12 medianoche,  por lo tanto se calcula
-desde el procesamiento de las jornadas nocturnas del jueves previo (que terminan viernes pues
-inician a las 7 pm del jueves) hasta las jornadas vespertinas del siguiente jueves (que terminan
-en la noche del jueves); o sea que procesa todas las asistencias de las jornadas que terminan
-el viernes en la mañana al fin de la jornada vespertina del jueves (el final de jornada nocturna
-del jueves es el viernes).  En el cálculo de la planilla semanal se aplican deducciones, ya sea
-porcentuales o fijas, las deducciones porcentuales se aplican semanalmente, la fijas, aunque el
-monto de deducción es mensual; se aplican semanalmente dividiendo entre 4 o entre 5, según
-si el mes tiene 4 o 5 jueves.
+| Jornada  | Inicio | Fin    |
+|----------|--------|--------|
+| Diurna   | 06:00  | 14:00  |
+| Vespertina | 14:00 | 22:00 |
+| Nocturna | 22:00  | 06:00 (del día siguiente) |
 
-Por ejemplo, suponga una deducción fija de 10,000 colones mensuales de ahorro vacacional,
-como la planilla es semanal, si el mes tiene 4 jueves: se deducen 2500 cada jueves, si tiene 5
-jueves se deducen 2000 por semana.
+- **Hora extra normal**: 1.5 × salario/hora, cuando la marca de salida supera la hora de fin de jornada y **no** es domingo ni feriado.
+- **Hora extra doble**: 2.0 × salario/hora, cuando es domingo o feriado.
+- Una hora se considera **extraordinaria** si la marca de salida del empleado es superior a la hora de salida de su tipo de jornada en la semana actual.
+- **Solo se pagan horas completas** (si trabajó 7.5 se pagan 7).
 
-Ejemplo de deducción porcentual: 9% de aporte obrero a la caja de seguro, se aplica al salario
-bruto (sin deducciones) calculado semanalmente.
+### Cierre semanal y mensual
 
-Para el cálculo del salario hay devengados (créditos o sea suman al salario) y deducciones
-(débitos o sea restan al salario), los devengados son:
+- El pago es **semanal**, el reporte a la caja del seguro es **mensual**.
+- El **cierre semanal** se realiza todos los jueves a las 12 medianoche.
+- El **cierre mensual** se realiza el **último jueves** de cada mes.
+- El mes planilla va desde la semana que inicia el **último viernes del mes anterior** hasta el **último jueves del presente mes**.
+- El mes usualmente tiene **4 semanas**, pero algunos tienen **5** (depende de cuántos jueves caigan en el ciclo).
+- La deducción por aporte a la Caja, aguinaldo y liquidaciones se calculan sobre el **salario mensual**, aunque se paguen semanalmente.
 
-   salario por hora trabajada,
-   salario por hora extraordinaria (son horas trabajadas, después de fin de la jornada, pero
-no en domingo ni feriado),
-   salario por hora extra doble (son horas trabajadas, después de fin de la jornada y, es
-domingo o feriado),
-   venta de vacaciones y otros.
+### Deducciones
 
-Las deducciones, son porcentuales o fijas; ejemplo de porcentuales: Caja del seguro (10.5%) y
-Cuota Asociación Solidarista (5%). Ejemplo de deducción fija son: embargo por pensión
-alimenticia, ahorro vacacional, embargo por deuda, pago de préstamo con la asociación
-solidarista, etc.
+**Porcentuales** (se aplican semanalmente sobre el salario bruto):
+- Caja del seguro (10.5%)
+- Cuota Asociación Solidarista (5%)
 
-La planilla mensual, es la suma de las planillas semanales, no necesariamente es mes natural.
-Los montos de la planilla mensual son los usados para el cálculo de pago de aguinaldo,
-liquidaciones, y es el salario que se comunica a la caja de seguro.
+**Fijas** (monto mensual, se prorratea entre 4 o 5 según los jueves del mes):
+- Embargo por pensión alimenticia
+- Ahorro vacacional
+- Embargo por deuda
+- Pago de préstamo con la asociación solidarista
 
-La suma de las deducciones es transferida, mensualmente, a las cuentas bancarias de los
-beneficiarios de las deducciones: caja del seguro, asociación solidarista, cuentas para
-embargos de deudas, y cuentas para embargo de pensión alimenticia.
+> Las deducciones porcentuales simplemente se aplican como porcentaje. Las fijas se dividen entre 4 o 5 dependiendo de los jueves del mes planilla.
 
-El pago se realiza haciendo una transferencia por el salario neto (salario bruto menos
-deducciones) a la cuenta bancaria del obrero. El segundo lunes de cada diciembre, se hace el
-pago del aguinaldo, es la suma del salario bruto mensual, de diciembre a noviembre, dividido
-entre 12. El salario bruto es la suma de todos los devengados, ignorando las deducciones
-aplicadas.
+### Planilla
 
-Todos los jueves, ingresa un archivo XML al sistema de planilla, que indica para cada
-empleado cuál será su turno para la siguiente semana que inicia viernes.
+- **Mensual** = suma de semanales del ciclo. Es el salario reportado a la Caja, base para aguinaldo y liquidaciones.
+- La suma de las deducciones se transfiere mensualmente a las cuentas de: caja, asociación solidarista, embargos.
+- El **pago** al obrero es por transferencia del salario neto (bruto − deducciones).
+- El **aguinaldo** (segundo lunes de diciembre) = suma del salario bruto mensual de dic-nov ÷ 12.
+- Cada jueves ingresa un XML con los turnos de la siguiente semana (que inicia viernes).
 
-Tres. Requerimientos funcionales.
+### Devengados (créditos)
+- Salario por hora trabajada
+- Salario por hora extraordinaria
+- Salario por hora extra doble
+- Venta de vacaciones y otros
 
-Para este proyecto debe implementar un sitio web para 2 tipos de usuarios: Usuario
-administrador y Usuario empleado.
+---
 
-Al sitio web se ingresa mediante Usuario y Password, dependiendo el tipo de usuario
-(administrador o empleado) la interfaz de usuario puede cambiar.
+## Tres. Requerimientos funcionales
 
-Tres.1. Requerimientos para las funcionalidades de usuarios que acceden como
-administrador.
+Sitio web para 2 tipos de usuario (administrador / empleado). Login con Usuario + Password.
 
-El interfaz de usuario debe permitir la realización de las siguientes acciones:
+### Tres.1. Administrador
 
-R01. Listar empleados: se listan todos los nombres de los empleados y el nombre de su
-puesto, en orden alfabético del nombre del empleado, y es posible seleccionar uno de ellos
-para editarlo. Esto consulta se ejecuta por default al ingresar, de manera que lo primero que ve
-el usuario es esta lista, es posible seleccionar un empleado para editarlo y hacer otras
-funciones que se especificaran después.
+- **R01**. Listar empleados: nombre + puesto, en orden alfabético. Default al ingresar. Seleccionable para editar.
+- **R02**. Listar empleados con filtro: mismo grid que R01, filtrado por patrón en el nombre.
+- **R03**. Impersonar un empleado: la siguiente interfaz es idéntica a la del empleado.
 
-R02. Listar empleados con filtro: es especifica un filtro, o sea un string que es un patrón de
-búsqueda respecto del nombre de empleado, y se listan los nombres de los empleados y el
-puesto que talque que el nombre del empleado cumple con el patrón, en orden alfabético del
-nombre del empleado. Después de que la lista ha sido filtrada, es posible seleccionar un
-empleado para editarlo y hacer otras funciones que se especificaran después. La interfaz debe
-ser similar a la que se ve en R01.
+### Tres.2. Empleado
 
-R03. Impersonar un empleado.
+- **R04**. Consultar planilla semanal: grid con salario bruto (clickeable), total deducciones (clickeable), salario neto, horas ordinarias, horas extra normales, horas extras dobles. Al click en deducciones: nombre + porcentaje + monto. Al click en salario bruto: por día, hora entrada/salida + movimientos (horas ordinarias, extras normales, extras dobles con su monto).
+- **R05**. Consultar planilla mensual: últimos X meses con salario bruto, total deducciones, salario neto. Al click en deducciones: nombre + porcentaje + monto de cada una (suma de las semanales del mes).
+- **R06**. Regresar a interfaz de administrador (solo visible si se entró como admin aunque impersonando).
 
-Se selecciona un empleado de la lista, al dar click a la opción de impersonar, la
-siguiente interfaz será exactamente igual que la que ve un usuario empleado al entrar a
-la aplicación con su usuario y password.
+### R07. Trazabilidad (no funcional)
 
-Tres.2. Requerimientos para las funcionalidades que puede acceder un empleado:
+Bitácora de eventos para **toda** acción: consultas, CRUD, asignación/desasignación de deducciones, login, logout.
 
-Un portal o sitio web, en donde el empleado hace login y puede realizar las siguientes
-operaciones:
+Para cada evento se almacena:
+- `IdUsuario`
+- `IP` desde donde se ejecuta
+- `PostTime` (estampa de tiempo)
+- `IdTipoEvento`
+- **Parámetros** de la operación (formato JSON permitido)
+- Para CRUD: registro **antes** y registro **después** (JSON)
 
-R04. Consultar planilla semanal:
+| Tipo de Evento | Información guardada |
+|---|---|
+| Login | UserName, resultado: exitoso/no exitoso |
+| Logout | Nada |
+| Listar empleados | Nada |
+| Listar empleados con filtro | Descripción del filtro |
+| Insertar empleado | Todos los atributos del nuevo empleado |
+| Eliminar empleado | Todos los atributos del empleado a borrar |
+| Asociar deducción | Empleado.Id, TipoDeduccion.Id, valor porcentual, valor monto fijo |
+| Desasociar deducción | Empleado.Id, TipoDeduccion.Id |
+| Consultar planilla semanal | Empleado.Id, Fecha Inicio, Fecha fin |
+| Consultar planilla mensual | Empleado.Id, Fecha Inicio, Fecha fin |
+| Editar empleado | Atributos antes y después |
+| Impersonar empleado | Empleado.Id que se está impersonando |
+| Regresar a interfaz de administrador | Nada |
+| Ingreso de marcas de asistencia | Empleado.Id, marca de inicio, marca de fin |
+| Ingreso nuevas jornadas | Empleado.Id, TipoJornada.Id |
 
-   Se visualizan las últimas X planillas semanales, se muestran en un grid con columnas
-para el salario bruto (clickeable), total de deducciones (clickeable), salario neto,
-cantidad de horas ordinarias, cantidad de horas extra normales, cantidad de horas
-extras doble.
-   Si se da click sobre el monto de deducciones se podrán ver el detalle de todas las
-deducciones aplicadas en esa semana para el empleado, el cual debe incluir para cada
-deducción asociada al empleado en esa semana: el nombre de la deducción, el
-porcentaje aplicado (si es que es porcentual) y el monto de la deducción.
-   Si se da click sobre el salario bruto: se visualizan; en un grid, para cada día de la
-semana, la hora de entrada, la hora de salida, y los movimientos que genero esa
-asistencia, o sea: horas ordinarias y monto devengado, horas extras normales y monto
-devengado; o, horas extras dobles y el monto devengado.
+> **No hay interfaz de usuario** para asignar o desasignar deducciones, excepto la que se asigna por default al insertar un empleado.
 
-R05. Consultar planilla mensual:
+---
 
-   Se visualizan los últimos X meses, se muestra el salario bruto, el total de deducciones y
-el salario neto.
-   Si se da click sobre el monto de deducciones se podrán ver el nombre de la deducción,
-el porcentaje aplicado (si es que es porcentual) y el monto de la deducción, para todas
-las deducciones aplicadas ese mes a ese empleado, que a su vez son la suma de las
-deducciones mensuales.
+## Cuatro. Datos de prueba
 
-R06. Regresar a interfaz de administrador.
+Carga inicial y simulación (≥ 4 meses) desde archivos XML. **Dos XML**: uno de catálogos, uno de operación (cada nodo raíz = una fecha consecutiva).
 
-Si se ingreso a la interfaz de empleado, como usuario administrador aunque impersonando un
-empleado, esta opción será visible, de otra manera no lo será. Al dar click aquí, la interfaz
-regresa a la interfaz inicial de un usuario administrador. Ver R01.
+### 4.1 Nodos del XML de catálogos
 
-Otros requisitos no funcionales.
-
-## R07. Trazabilidad
-
-En una tabla de bitácora de eventos, se guarda la historia de toda acción en las aplicaciones ya
-sea ejecución consultas, modificaciones en línea de CE (CRUD), , asignación y des asignación
-de deducciones (ya sea desde la interfaz de usuario, desde el script de simulación), login,
-logout. Los datos de pruebas proveerán un catalogo de tipos de eventos.
-
-Recordar que no hay interfaz de usuario para asignar o desasignar deducciones, excepto la
-que se asigna por default al insertar un empleado, esto para mantener el proyecto de manera
-menos compleja.
-
-Para cada tipo de evento se almacena el Id de Usuario, la IP desde donde se ejecuta la acción,
-una estampa de tiempo, el id del tipo de evento, la lista de parámetros necesaria para realizar
-la operación, y en el caso de un crud, los campos del registro “antes” de la operación y los
-campos de los registros “despues” de la operación.
-
-Para todo evento se guarda el User.Id, IP y estampa de tiempo. La información que se
-guarda puede tener formato JSON.
-
-Tipo de Evento Información que se guarda en el
-
-## Event Log
-
-Login UserName, resultado: exitoso, no
-
-exitoso
-
-## Logout Nada
-
-Listar empleados Nada
-Listar empleados con filtro Descripción del filtro
-Insertar empleado Todos los atributos del nuevo
-empleado
-Eliminar empleado Todos los atributos del empleado que
-se borrar
-Asociar deducción Empleado.Id, TipoDeduccion.Id, valor
-porcentual, valor monto fijo
-Desasociar deducción Empleado.Id, TipoDeduccion.Id
-Consultar una planilla semanal Empleado.Id, Fecha Inicio y Fecha fin
-de planilla
-Consultar una planilla mensual Empleado.Id, Fecha Inicio y Fecha fin
-de planilla
-Editar empleado Todos los atributos antes de la
-edición, todos los atributos después
-de la edición
-
-Impersonar empleado Empleado.Id que se está
-impersonando
-Regresar a interfaz de administrador Nada
-Ingreso de marcas de asistencia Empleado.Id marca de inicio, marca
-de fin
-Ingreso nuevas jornadas Empleado.Id, TipoJornada.Id
-
-Cuatro. Datos de prueba.
-
-La carga de datos de prueba, así como una simulación de la ejecución del sistema para varios
-meses (al menos 4 meses) se hará desde un archivo XML.
-
-Nodos XML para Catálogos.
-
-La carga de datos de prueba respecto de catálogos se hará a través desde un archivo XML que
-tendrá nodos con la siguiente estructura.
-
-<!-- catalogos-->
+```xml
 <Catalogo>
+  <TiposDeJornada>
+    <TipoDeJornada id="1" Nombre="Diurno" HoraInicio="6:00" HoraFin="14:00"/>
+    <TipoDeJornada id="2" Nombre="Vespertino" HoraInicio="14:00" HoraFin="22:00"/>
+    <TipoDeJornada id="3" Nombre="Nocturno" HoraInicio="22:00" HoraFin="06:00"/>
+  </TiposDeJornada>
 
-<TiposDeJornada>
-<TipoDeJornada> id=”1” Nombre=”Diurno” HoraInicio=”6:00” HoraFin=”14:00”/>
-<TipoDeJornada> id=”2” Nombre=”Vespertino” HoraInicio=”14:00” HoraFin=”22:00”/>
-<TipoDeJornada> id=”3” Nombre=”Nocturno” HoraInicio=”22:00” HoraFin=”06:00”/>
-</TiposDeJornada>
+  <Puestos>
+    <Puesto Nombre="Electricista" SalarioXHora="1200"/>
+    <Puesto Nombre="Auxiliar de Laboratorio" SalarioXHora="1250"/>
+    <Puesto Nombre="Operador de Maquina" SalarioXHora="1025"/>
+  </Puestos>
 
-<Puestos>
-<Puesto Nombre="Electricista" SalarioXHora="1200"/>
-<Puesto Nombre="Auxiliar de Laboratorio" SalarioXHora="1250"/>
-<Puesto Nombre="Operador de Maquina" SalarioXHora="1025"/>
-## ....
-</Puestos>
+  <Feriados>
+    <Feriado Id="1" Nombre="Dia de Juan Santamaria" Fecha="20220411"/>
+    <Feriado Id="2" Nombre="Jueves Santo" Fecha="20220414"/>
+    <Feriado Id="3" Nombre="Viernes Santo" Fecha="20220415"/>
+    <Feriado Id="4" Nombre="Dia del trabajo" Fecha="20220501"/>
+  </Feriados>
 
-<Feriados>
-<Feriado Id="1" Nombre="Dia de Juan Santamaria" Fecha=”20220411”/>
-<Feriado Id="2" Nombre="Jueves Santo" Fecha=”20220414”/>
-<Feriado Id="3" Nombre="Viernes Santo" Fecha=”20220415”/>
-<Feriado Id="4" Nombre="Dia del trabajo" Fecha=”20220501”/>
-## ...
-## </ Feriados >
-<TiposDeMovimiento>
-<TipoDeMovimiento Id="1" Nombre="Credito Horas ordinarias" />
-<TipoDeMovimiento Id="2" Nombre="Credito Horas Extra Normales" />
-<TipoDeMovimiento Id="3" Nombre="Credito Horas Extra Dobles" />
+  <TiposDeMovimiento>
+    <TipoDeMovimiento Id="1" Nombre="Credito Horas ordinarias"/>
+    <TipoDeMovimiento Id="2" Nombre="Credito Horas Extra Normales"/>
+    <TipoDeMovimiento Id="3" Nombre="Credito Horas Extra Dobles"/>
+    <TipoDeMovimiento Id="4" Nombre="Caja"/>
+    <TipoDeMovimiento Id="5" Nombre="Deduccion Ahorro Obligatorio"/>
+  </TiposDeMovimiento>
 
-## Inicio Mejorarlo ...
+  <TiposDeDeduccion>
+    <TipoDeDeduccion Id="1" Nombre="Obligatorio de Ley" Obligatorio="Si" Porcentual="Si" Valor="0.095"/>
+    <TipoDeDeduccion Id="2" Nombre="Ahorro Asociacion Solidarista" Obligatorio="No" Porcentual="Si" Valor="0.05"/>
+    <TipoDeDeduccion Id="3" Nombre="Ahorro Vacacional" Obligatorio="No" Porcentual="No" Valor="0"/>
+    <TipoDeDeduccion Id="4" Nombre="Pension Alimenticia" Obligatorio="No" Porcentual="No" Valor="0"/>
+  </TiposDeDeduccion>
 
-<TipoDeMovimiento Id="4" Nombre="Caja" />
-<TipoDeMovimiento Id="4" Nombre="Deducciones Asociacion Solidarista" />
+  <UsuariosAdministrador>
+    <!-- Usuario tipo 1 es administrador, tipo 2 es empleado -->
+    <Usuario pwd="1234" username="Goku"/>
+    <Usuario pwd="1234" username="Willy"/>
+  </UsuariosAdministrador>
 
-<TipoDeMovimiento Id="5" Nombre="Deduccion Ahorro Olbigatorio" />
-## ...
-</TiposDeMovimiento>
+  <TiposdeEvento>
+    <TipoEvento Id="1" Nombre="login"/>
+    <TipoEvento Id="2" Nombre="logout"/>
+    <TipoEvento Id="3" Nombre="Listar empleados"/>
+    <TipoEvento Id="4" Nombre="Listar empleados con filtro"/>
+    <TipoEvento Id="5" Nombre="Insertar empleado"/>
+  </TiposdeEvento>
+</Catalogo>
+```
 
-<TiposDeDeduccion>
-<TipoDeDeduccion Id="1" Nombre="Obligatorio de Ley" Obligatorio="Si" Porcentual="Si"
-## Valor="0.095" />
-<TipoDeDeduccion Id="2" Nombre="Ahorro Asociacion Solidarista" Obligatorio="No"
-Porcentual="Si" Valor="0.05" />
-<TipoDeDeduccion Id="3" Nombre="Ahorro Vacacional" Obligatorio="No" Porcentual="No"
-## Valor="0" />
-<TipoDeDeduccion Id="4" Nombre="Pension Alimenticia" Obligatorio="No" Porcentual="No"
-## Valor="0" />
-## ...
-</TiposDeDeduccion>
+### 4.2 Reglas de mapeo
 
-<UsuariosAdministrador>
-<!—Usuario tipo 1 es administrador, tipo 2 es empleado>
-<Usuario pwd="1234" username="Goku" />
-<Usuario pwd="1234" username="Willy" />
-</UsuariosAdmnistrador>
+- **Las llaves de las tablas catálogo se insertan tal cual vienen del XML**, excepto `Puesto` cuyo mapeo se hace **por nombre** (porque su `Id` es IDENTITY y cada proyecto puede tener un Id distinto para "Electricista").
+- **Las tablas no-catálogo usan `IDENTITY`** (cada proyecto genera sus propias llaves).
 
-<!— En la BD en CE Usuarios se debe guardar tipo="1” si es administrador =”2” >
-<!— si es empleado >
+### 4.3 Nodos del XML de operación
 
----- fin mejorarlo
+```xml
+<Operacion>
+  <FechaOperacion Fecha="2023-06-10">
+    <NuevosEmpleados>
+      <NuevoEmpleado Nombre=""
+                     IdTipoDocumento="" ValorTipoDocumento=""
+                     IdDepartamento="" IdPuesto=""
+                     Usuario="" Password=""/>
+    </NuevosEmpleados>
 
-<TiposdeEvento>
-<TipoEvento> Id=”1” Nombre: “login”/>
-<TipoEvento> Id=”2” Nombre: “logout”/>
-<TipoEvento> Id=”3” Nombre: “Listar empleados”/>
-<TipoEvento> Id=”4” Nombre: “Listar empleados con filtro”/>
-<TipoEvento> Id=”5” Nombre: “Insertar empleado”/>
-## ...
-<\TiposdeEvento>
-<\Catalogo>
+    <EliminarEmpleados>
+      <EliminarEmpleado ValorTipoDocumento=""/>
+    </EliminarEmpleados>
 
-Las llaves de las tablas catálogo, se insertan tal cual vienen en el archivo XML, excepto para
-Puestos cuyo mapeo será a través del nombre. O sea que las llaves en estas entidades tipo
-catálogo (excepto puesto) no son llaves identity, ni autoincrementales; excepto en Puesto.
+    <AsociacionEmpleadoDeducciones>
+      <AsociacionEmpleadoConDeduccion IdTipoDeduccion=""
+                                       ValorTipoDocumento="" Monto=""/>
+    </AsociacionEmpleadoDeducciones>
 
-“Mapeo” es la forma en que se obtienen los atributos de una entidad, usualmente el mapeo es
-a través de la llave primaria PK, pero si esta no se conoce o no se puede deducir hay que
-hacerlo a través de una llave secundaria, en el caso de Puesto, ya que en la tabla el Id será
-autoincremental, cada proyecto de cada grupo puede ser que tenga id diferente para el puesto
-electricista, entonces para obtener el id, hay que “mapear” nombre de puesto.
+    <DesasociacionEmpleadoDeducciones>
+      <DesasociacionEmpleadoConDeduccion IdTipoDeduccion=""
+                                          ValorTipoDocumento=""/>
+    </DesasociacionEmpleadoDeducciones>
 
-Para las tablas no-catálogo, sus llaves SI son identity, por lo tanto, cada proyecto genera llaves
-propias.
+    <MarcasAsistencia>
+      <MarcaDeAsistencia ValorTipoDocumento="" HoraEntrada="--" HoraSalida="-- :"/>
+    </MarcasAsistencia>
 
-Especificación de pruebas mediante una simulación del sistema y el XML con los datos
-de operación.
+    <JornadasProximaSemana>
+      <TipoJornadaProximaSemana ValorTipoDocumento="" IdTipoJornada=""/>
+    </JornadasProximaSemana>
+  </FechaOperacion>
+  <FechaOperacion Fecha="2023-06-11">
+    ...
+  </FechaOperacion>
+</Operacion>
+```
 
-Para realizar la simulación se utilizarán dos documento xml uno para la inserción de catálogos
-o datos básicos (TipoDocumentoIdentidad, Puestos, Departamento, TipoJornada (turnos),
-TipoMovimientoPlanilla, Usuarios y Tipos de Evento), y un documento xml cuyo nodo en su
-nivel más alto representa una fecha de operación del sistema, las fechas serán consecutivas.
+### 4.4 Reglas del XML de operación
 
-Dentro de cada fecha de operación, habrá nodos para:
+- Los empleados se identifican por `ValorTipoDocumento` (típicamente cédula).
+- Al insertar un empleado, este debe asociarse automáticamente con las deducciones obligatorias, **a través de un trigger**.
+- "Una deducción de tipo obligatoria (caja) no se asocian" → solo se asignan automáticamente, no desde el XML.
+- Las marcas de asistencia pueden iniciar un día y terminar al día siguiente (jornadas nocturnas).
 
-   Inserción de nuevos empleados
-   Eliminar un empleado
-   Asociar un empleado con una deducción no obligatoria.
-   Desasociar un empleado con una deducción no obligatoria.
-   La representación de marcas de asistencia que corresponden a la fecha de operación.
-Estos nodos indican la hora de entrada y la hora de salida de los empleados, las marcas
-incluyen la fecha (AAAAMMDD hh:mm). Una marca puede iniciar una fecha y terminar
-en fecha del día siguiente, para las jornadas nocturnas.
-   Si es jueves, para cada empleado el tipo de jornada para la siguiente semana.
+### 4.5 Pasos de la simulación por cada fecha (en orden)
 
-El XML de operación incluirá al menos X meses de datos. Al insertar un empleado, este debe
-asociarse automáticamente con las deducciones obligatorias, a través de un trigger.
+1. **Insertar empleados** que inician en próximo inicio de semana. No pueden iniciar al día siguiente (a menos que sea jueves).
+2. **Eliminar empleados** que dejan de trabajar en esa fecha.
+3. **Asociar** empleado con deducción, aplicable desde próximo inicio de semana.
+4. **Desasociar** empleado con deducción, aplicable desde próximo inicio de semana.
+5. **Procesar asistencias** por cada empleado:
+   - **Horas ordinarias** = horas trabajadas (enteras) × salario/hora del puesto → un movimiento.
+   - **Horas extras normales** = exceso sobre la hora de salida de la jornada (enteras) × salario/hora × 1.5 → un movimiento (si la fecha no es domingo/feriado).
+   - **Horas extras dobles** = horas extras cuando la fecha es domingo/feriado × salario/hora × 2.0 → un movimiento.
+   - Una asistencia puede generar hasta 3 movimientos (ej: salida 3am del día siguiente siendo feriado).
+   - Los movimientos se insertan en la planilla semanal e incrementan `SalarioBruto`.
 
-Todos los catalogos se mapearán por Id (excepto Puestos), desde el XML de operación.
+6. **Si es jueves, cierre de semana** (en orden):
+   - El salario bruto ya está calculado.
+   - Aplicar **deducciones porcentuales** al salario bruto, agregar movimiento de débito y acumular a `TotalDeducciones`.
+   - Aplicar **deducciones fijas no vencidas**, agregar movimiento de débito y acumular a `TotalDeducciones`.
+   - Acumular las deducciones en el resumen mensual por empleado y por tipo.
+   - `SalarioNeto = SalarioBruto - TotalDeducciones`.
+   - (Depósito bancario NO se implementa.)
 
-La estructura del xml de operación es similar a esta:
+7. **Si es jueves y mañana es primer viernes del mes, apertura del mes**:
+   - Crear encabezado del mes para todos los empleados.
+   - Crear encabezado de la siguiente semana para todos los empleados.
+   - Procesar nodos `JornadasProximaSemana` → insertar en `HorarioJornada`.
 
-Nota temporal: Aclaración: este formato de XML debe ser mejorado, se hará para una próxima
-versión del documento.
+---
 
-Nota: <AsociaEmpleadoConDeduccion .../>, asocia en empleado con un tipo de deducción no
-obligatoria. <DesasociaEmpleadoConDeduccion .../>, desasocia un empelado con un tipo de
-deducción no obligatorio. Una deducción de tipo obligatoria (caja) no se asocian.
+## Cinco. Qué se pide
 
-Los mapeos a empleados en el XML de operación serán a través del valor del documento de
-idéntica, típicamente el número de cédula.
+1. La **BD física** para implementar la solución.
+2. El código del **trigger** que asocia un nuevo empleado con las deducciones obligatorias.
+3. El **script para el llenado de catálogos**.
+4. El **script que hace la simulación** y su corrida.
+5. El código en **capa lógica** para el sitio web (admin y empleado).
+6. El código de los **SP** para las simulaciones y todas las consultas.
+7. Un **portal web** donde el empleado hace login.
+8. La **documentación**.
 
-La simulación, itera sobre todas las fechas, de manera consecutiva ascendentemente por valor
-de fecha, y debe realizar las siguientes funciones en cada fecha:
-
-   Insertar empleados que inician a trabajar en próximo inicio de semana. NO puede ser
-que inicien al siguiente día (a menos que se inserten jueves), pues aun no tendrán
-asignado una jornada de trabajo.
-   Eliminar empleados que dejan de trabajar en esa fecha de operación.
-   Asociar empleados con tipo de deducción, aplicable a partir del próximo inicio de
-semana.
-   Desasociar empleados con tipo de deducción, aplicable a partir del próximo inicio de
-semana.
-   Procesar asistencias, para cada empleado reportado con un nodo de asistencia:
-
-o  Calcular cantidad de horas trabajadas ordinarias, y crear un movimiento por
-horas trabajadas ordinarias, cuyo monto será la cantidad de horas trabajadas
-multiplicado por salario por hora del puesto del empleado. Solo se pagan horas
-completas, si el empleado trabajo 7.5 horas se pagan 7 horas.
-o  Calcular cantidad de horas trabajadas extras normales, es el exceso de horas
-respecto de la hora de salida según la jornada de la semana actual, solo se
-pagan horas extras completas, se debe generar un movimiento cuyo monto es la
-cantidad de horas extras completas multiplicada por el salario x hora del puesto
-multiplicado por 1.5 si la fecha no es domingo ni feriado
-o  Calcular cantidad de horas extras dobles trabajadas, si el obrero trabajo horas
-extras, y la fecha es domingo o feriado, son horas extras dobles, el monto
-ganado es el salario por hora multiplicado por la cantidad de horas, multiplicado
-por 2. Nota: en un caso extremo la asistencia del empleado a una fecha puede
-generar 3 movimientos, suponga que su fin de jornada es a las 10 pm, sin
-embargo, su marca de salida es 3 am del día siguiente y este es feriado, genera
-movimiento de horas ordinarias (de su jornada), 2 horas extras normales
-(pagadas a 1.5 del salario de su puesto), y 3 horas extras dobles.
-
-Al calcular movimientos de salario por hora, debe generarse movimientos en la
-planilla semanal, y debe incrementarse el SalarioBruto.
-
-   Si fecha de operación es jueves, después de procesar lo anterior, se debe hacer cierre
-de semana de planilla:
-
-o  El salario bruto ya estará calculado al llegar al final del jueves.
-o  Aplicar todas las deducciones porcentuales respecto del salario bruto, esto es, a
-cada empleado por cada tipo de deducción porcentual asociada al empleado, se
-calcula la deducción, se agrega un movimiento de débito y se acumula en
-totaldeducciones. Esto para todos los empleados.
-
-o  Aplique todas las deducciones por monto fijo (las no obligatorias), esto es
-genere un movimiento de débito por el monto de la deducción por cada tipo de
-deducción asociado al empleado con monto fijo (o sea no es porcentual), se
-agrega un movimiento de débito y se acumula en totaldeducciones.  Se aplica a
-todos los empleados que tienen asociados deducciones no obligatorias, no
-vencidas.
-o  A todos los empleados, acumule las deducciones en el resumen mensual de
-deducciones (deducciones x empleado x mes).
-o  Como resultado de lo anterior, el salario neto será el SalarioBruto –
-TotalDeducciones.
-o  Procesar el depósito bancario a la cuenta del empleado con el salario neto.
-(salario bruto menos deducciones). Este paso no se hará.
-
-Aclaración sobre las deducciones: las deducciones porcentuales, simplemente se aplica el
-porcentaje. Las deducciones fijas, el monto de la deducción es mensual, al aplicarse
-semanalmente, debe dividirse este monto entre 4 o 5, dependiendo si el mes planilla es de
-4 o de 5 semanas.
-
-   Si la fecha de operación es jueves y el siguiente día es el primer viernes del mes, hacer
-apertura para el siguiente mes.
-
-o  Crear encabezado del mes para todos los empleados respecto del mes que
-inicia ese primer viernes del mes, esto es necesario para llevar los acumulados
-mensuales de SalarioBrutoMensual, DeduccionesMensuales y detalle de las
-deduccionesXmes.
-
-   Si fecha de operación es jueves, abrir proceso de nueva semana, esto preparar las
-estructuras de datos o tablas para su proceso diario:
-
-o  Crear encabezado de semana (de la planilla semanal) para todos los empleados
-para la semana que inicia el día siguiente asociado con el mes que le
-corresponde.
-o  Procesar los nodos que asocian el empleado con el tipo de jornada que cumplirá
-en la siguiente semana.
-
-Cinco. ¿Qué se pide?
-
-La BD física para implementar la solución del problema.
-
-El código del trigger que asocia un nuevo empleado con las deducciones obligatorias.
-
-El script para para llenado de catalogos
-
-El script que hace la simulación y su corrida.
-
-El código en capa lógica para la el sitio web ya sea que el susuario es administrador o
-empleado.
-
-El código de los SP para las simulaciones y todas las consultas.
-
-Un portal o sitio web, en donde el empleado hace login y puede realizar las operaciones, que
-se definieron antes,
-
-La documentación acostumbrada
+---
 
 ## Seis. Reglas
 
-Por cada empleado, al final de su procesamiento independientemente de si es día normal o día
-de cierre, debe existir una sola transacción de BD que haga todo para ese empleado, esto es:
-   insertar movimientos por horas,
-   insertar movimientos por deducciones solo en día de cierre,
-   acumular Salario Bruto Semanal y Total Deducciones semanal (en
-PlanillaSemXEmpleado),
-   acumular Salario Bruto Mensual y Total Deducciones mensuales (en
-PlanillaMexXEmpleado),
-   acumular en DeduccionesXEmpleadoxMes, para cada tipo de deducción asociado con
-el empleado.
-   si es el primer empleado que se procesa preguntar
-o  si es ultima semana del mes, y si sí, aperturar (crear instancia) mesPlanilla para
-siguiente ciclo mensual (CE MesPlanilla)
-o  crear instancia para siguiente ciclo semanal (CE SemanaPlanilla)
-   Crear instancia para PlanillaSemXEmpleado, del nuevo ciclo semanal, con los
-acumuladores en cero.
-   Si se esta procesando la última semana del mes, debe crearse instancia de
-PlanillaMexXEmpleado, así como una nueva instancia de
-DeduccionesXEmpleadoxMes.
+Por cada empleado, al final de su procesamiento (día normal o cierre), debe existir **una sola transacción** que haga todo para ese empleado:
 
-Todo el código referido a base de datos, debe ser un procedimiento almacenado. No puede
-haber SQL incrustado en capa lógica.
+- Insertar movimientos por horas.
+- Insertar movimientos por deducciones solo en día de cierre.
+- Acumular Salario Bruto Semanal y Total Deducciones semanal (`PlanillaSemXEmpleado`).
+- Acumular Salario Bruto Mensual y Total Deducciones mensuales (`PlanillaMexXEmpleado`).
+- Acumular en `DeduccionesXEmpleadoxMes` por cada tipo de deducción asociado.
+- Si es el primer empleado que se procesa:
+  - Si es la última semana del mes, aperturar `MesPlanilla` para el siguiente ciclo.
+  - Crear instancia del siguiente ciclo semanal `SemanaPlanilla`.
+- Crear instancia de `PlanillaSemXEmpleado` del nuevo ciclo semanal, con acumuladores en cero.
+- Si se procesa la última semana del mes, crear instancia de `PlanillaMexXEmpleado` y de `DeduccionesXEmpleadoxMes`.
 
-Grupos de 2 personas. Motor de base de datos: MS SQL cualquier versión superior a 2014.
-Código en capa lógica, en el lenguaje o framework de su preferencia.
+> **Todo el código referido a base de datos debe ser un SP. No puede haber SQL incrustado en capa lógica.**
 
-Fecha de entrega: 13 de junio 2026 (Primera entrega), 1 de Julio (segunda entrega, fecha
-anterior a entrega de actas (2 Julio).
-
-La meta debe ser entregar el proyecto completo el xx de junio, con un valor de 26.66%, o sea
-vale como 2 tareas programadas (la 3era y la 4ta), si la primera entrega está muy incompleta o
-incorrecta se evalúa sobre la base de un 13.33% (se evalúa como 3era tarea) de manera que el
-estudiante la puede completar y mejorar para la 2da entrega, que en este caso se valora en
-
-## 13.33%
+**Grupos**: 2 personas. **Motor**: MS SQL Server ≥ 2014. **Lenguaje de capa lógica**: libre.
+**Entregas**: 13 junio 2026 (primera), 1 julio 2026 (segunda).
