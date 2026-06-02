@@ -61,7 +61,7 @@ export async function getEmpleados(req: Request, res: Response): Promise<void> {
         if (!usuarioId) {
             const fallbackResult = await pool
                 .request()
-                .query('SELECT TOP 1 Username FROM Usuario ORDER BY Id');
+                .query('SELECT TOP 1 Username FROM Usuario ORDER BY id');
 
             usernameForLog = String(fallbackResult.recordset?.[0]?.Username ?? 'UsuarioScripts');
         }

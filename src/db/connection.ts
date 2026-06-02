@@ -5,7 +5,7 @@ const dbConfig: sql.config = {
     password: 'Bd2Tarea2026!',
     server: 'localhost',
     port: 1433,
-    database: 'VacacionesDB',
+    database: 'PlanillaDB',
     options: {
     encrypt: false,
     trustServerCertificate: true,
