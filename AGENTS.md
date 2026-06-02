@@ -1,6 +1,6 @@
 # AGENTS.md — Guía operativa (Planilla / Control de Asistencia)
 
-> **Fuente única de verdad**: `Especificacion.pdf` (transcripción limpia en `SPEC.md`).
+> **Fuente única de verdad**: `Especificacion.pdf` (PDF del profe fquiros, Mayo 2026).
 > Este archivo **no** redefine requisitos; documenta **decisiones de implementación**, **convenciones** y **workflow** del agente.
 
 ---
@@ -9,79 +9,77 @@
 
 ### 1.1 Origen del modelo
 
-- Modelo conceptual provisto por el profesor (`Modelo Conceptual.png`), con la corrección explícita de **NO** incluir `Departamento` ni `TipoDocumentoIdentidad` en la BD. Esos dos catálogos aparecen en el XML de operación del PDF, pero no aportan a la lógica de planilla y por tanto se omiten del esquema físico.
-- Convenciones estructurales copiadas de `Tarea2-BD`: ids en minúscula (`id`, `idPuesto`, etc.), tablas `DBError` y `[Error]` para trazabilidad de SPs, uso de `@outResultCode INT OUTPUT` en cada SP, `SET XACT_ABORT ON; SET NOCOUNT ON;` como cabecera.
-- El backend ya existente (`src/controllers/*.ts`) asume los nombres `ValorDocumentoIdentidad`, `sp_Login`, `sp_InsertarEmpleado`, `sp_GetEmpleados`, `sp_GetTiposMovimiento`, `sp_GetMovimientos`, `sp_InsertMovimiento`, `sp_UpdateEmpleado`, `sp_DeleteEmpleado`, `sp_GetEmpleadoById`, `sp_Logout`, `sp_GetError`. El esquema y los SPs deben respetar esos nombres.
+- Se parte del modelo de Sebas (su diagrama ER, `ModeloSebas.jpeg` + `ModeloSebas1/2/3.jpeg`) usado como **guía estructural**.
+- Se aplican 8 correcciones justificadas contra `Especificacion.pdf` (ver `SQL/SCRIPTS/Tablas.sql` por tabla y la sección §1.3 aquí para el resumen).
+- Convenciones de Tarea2-BD: `id` en minúscula (PK IDENTITY), tablas `DBError` y `Error` para trazabilidad, `inXxx`/`@outResultCode INT OUTPUT` en SPs, `SET XACT_ABORT ON; SET NOCOUNT ON;` por SP.
+- Convenciones de SSMS en el `.sql`: sin `IF OBJECT_ID` ni `DROP`; `USE [PlanillaDB]` (la base se asume preexistente, se crea con `VaciarDB.sql`).
+- Convenciones Tarea2-BD para `BitacoraEvento`: `IpPostIn` (no `ip`), `PostTime` (no `FechaHora`).
+- El backend de Tarea2-BD (`src/controllers/*.ts`) NO es de este proyecto — no basarse en él.
 
-### 1.2 Catálogos (12 tablas, `id INT IDENTITY(1,1)`)
+### 1.2 Modelo final (20 tablas, 22 FKs, 1 trigger)
 
-| Tabla | Notas |
-|---|---|
-| `TipoEvento` | `id, Nombre` (UNIQUE). Sembrado inline en `Tablas.sql` con 14 valores base. |
-| `TipoMov` | `id, Nombre, Accion char(1) CHECK IN ('C','D')`. Catálogo de movimientos. **No** se llama `TipoMovimiento` (es el nombre del modelo conceptual; ya está alineado con el SP `sp_GetTiposMovimiento`). |
-| `TipoJornada` | `id, Nombre, HoraInicio time(0), HoraFin time(0)`. `HoraFin <> HoraInicio` (jornadas nocturnas cruzan medianoche — el control se hace en `datetime`, no en `time`). |
-| `Puesto` | `id, Nombre, SalarioXHora decimal(10,2)`. `Nombre` UNIQUE. **Es el único catálogo con `IDENTITY`** (consistente con Tarea2-BD). |
-| `TipoDeduccion` | `id, FlagObligatorio bit`. Raíz de la jerarquía de deducciones. |
-| `DeduccionXLEy` | Subtipo 1:1 de `TipoDeduccion` cuando es **obligatoria de ley** (`FlagObligatorio=1`). Tiene `Porcentaje decimal(8,4)`. |
-| `DeduccionNoObligatoria` | Subtipo 1:1 de `TipoDeduccion` cuando es **opcional** (`FlagObligatorio=0`). Tiene `FlagFijo bit`. |
-| `DeduccionMontoFijo` | Subtipo 1:1 de `DeduccionNoObligatoria` cuando `FlagFijo=1`. Tiene `Monto money`. |
-| `DeduccionPorcentual` | Subtipo 1:1 de `DeduccionNoObligatoria` cuando `FlagFijo=0`. Tiene `Porcentaje decimal(8,4)`. |
-| `Feriados` | `id, Nombre, Fecha date` (UNIQUE — no se duplican feriados). Plural tal como aparece en el modelo conceptual. |
-| `Mes` | `id, FechaInicio date, FechaFin date`. Encabezado del ciclo mensual de planilla. |
-| `Semana` | `id, FechaInicio date, FechaFin date`. Encabezado del ciclo semanal de planilla (viernes → jueves). |
+| Tabla | Columnas | Notas |
+|---|---|---|
+| `BitacoraEvento` | id, idTipoEvento, idUsuario, **PostTime**, **IpPostIn**, Descripcion | R07: User.Id, IP, estampa de tiempo. NVARCHAR(512) en Descripcion. |
+| `DBError` | id, UserName, Number, State, Severity, Line, [Procedure], Message, DateTime | Bitácora de errores no controlados. NVARCHAR en UserName/Procedure/Message. |
+| `DeduccionEmpleado` | id, idEmpleado, idTipoDeduccion, **MontoFijo**, FechaInicio, **FechaFin** | Una fila por (empleado, tipo de deducción). MontoFijo carga el `Valor` del TipoDeduccion (sea % o monto); el SP decide cómo aplicarlo. FechaFin='9999-12-31' = vigente. |
+| `DeduccionXMes` | id, idPlanillaMensual, idTipoDeduccion, MontoTotal | Resumen mensual de deducciones (PDF p.9, §4.4.6). |
+| `Empleado` | id, idPuesto, idUsuario, ValorDocumento, Nombre, CuentaBancaria, FechaContratacion, **Activo** | Sin `Departamento`/`TipoDocIdentidad` (no aportan a planilla, ver §1.3). |
+| `Feriado` | id, Nombre, Fecha | Tabla obligatoria: el SP de cierre verifica `Fecha` contra `MarcaAsistencia.Fecha` para extras dobles (PDF p.1, p.8 §4.4.5). |
+| `HorarioJornada` | id, idEmpleado, idSemana, idTipoJornada | Asignación de jornada por semana. |
+| `MarcaAsistencia` | id, idEmpleado, Fecha, HoraEntrada, HoraSalida | **Sin** FK a HorarioJornada ni Semana (ver §1.3.6). Jornada nocturna puede cruzar medianoche. |
+| `Mes` | id, FechaInicio, FechaFin, NumJueves TINYINT | Encabezado del ciclo mensual. NumJueves precalculado por el SP. |
+| `MovHoras` | id, QHoras INT, idAsistencia, idTipoMov | **Tabla nueva**. PDF §4.4.5: cada asistencia → hasta 3 movimientos (1 ord, 1 ext-normal, 1 ext-doble). QHoras siempre entero (PDF: "Solo se pagan horas completas, si el empleado trabajo 7.5 horas se pagan 7 horas"). |
+| `MovPlanilla` | id, idPlanillaSemanal, idTipoMovimiento, Monto, NuevoSaldo | Líneas monetarias de la planilla. `NuevoSaldo` = saldo acumulado después de aplicar el movimiento. |
+| `PlanillaMensual` | id, idEmpleado, idMes, SalarioBruto, TotalDeducciones, SalarioNeto | Suma de las semanales del mes (puede no ser mes natural). |
+| `PlanillaSemanal` | id, idEmpleado, idSemana, SalarioBruto, TotalDeducciones, SalarioNeto, **Comprobante** VARBINARY(MAX) NULL | **Sin** columnas HorasOrd/ExtraNormal/ExtraDoble (denormalización, ver §1.3.5). Comprobante = PDF/image del recibo. |
+| `Puesto` | id, Nombre, SalarioXHora | Catálogo. Mapeo por `Nombre` desde el XML (PDF p.6). |
+| `Semana` | id, idMes, FechaInicio, FechaFin | Ciclo semanal viernes → jueves. |
+| `TipoDeduccion` | id, Nombre, **EsObligatoria** BIT, **EsPorcentual** BIT, **Valor** DECIMAL(8,4), idTipoMovimiento | Modelo unificado: si `EsPorcentual=1` el SP aplica `Valor * SalarioBruto`; si `EsPorcentual=0` el SP divide `Valor / NumJueves` y aplica por semana. |
+| `TipoEvento` | id, Nombre | Catálogo para BitacoraEvento. |
+| `TipoJornada` | id, Nombre, HoraInicio TIME(0), HoraFin TIME(0) | Diurno, Vespertino, Nocturno. |
+| `TipoMovimiento` | id, Nombre, Accion CHAR(1) | Crédito ('C') o Débito ('D'). Catálogo para MovHoras y MovPlanilla. |
+| `Usuario` | id, Username, PasswordHash, **Tipo** VARCHAR(2) | `Tipo='1'` admin, `Tipo='2'` empleado (PDF p.6, comentario XML). |
+| **Trigger** | `trg_Empleado_Insert_AssignMandatoryDeductions` | `AFTER INSERT ON Empleado`, cross-join con `TipoDeduccion WHERE EsObligatoria=1`, inserta `DeduccionEmpleado` con `MontoFijo=td.Valor`, `FechaInicio=i.FechaContratacion`, `FechaFin='9999-12-31'`. |
 
-### 1.3 Dominio (10 tablas, `id INT IDENTITY(1,1)`)
+**Total: 20 tablas, 22 FKs, 1 trigger.**
 
-- `Usuario` — `id, Username (UNIQUE), Password, Tipo tinyint CHECK IN (1,2)`. `Tipo=1` admin, `Tipo=2` empleado.
-- `UsuarioAdministrador` — `idUsuario` PK+FK → `Usuario`. 1:1 cuando `Tipo=1`.
-- `UsuarioEmpleado` — `idUsuario` PK+FK → `Usuario`, `idEmpleado` FK → `Empleado` (UNIQUE). 1:1 cuando `Tipo=2`.
-- `Empleado` — `id, idPuesto, ValorDocumentoIdentidad (UNIQUE, NVARCHAR(32)), Nombre, CuentaBancaria`. (Se usa `ValorDocumentoIdentidad` y no `documentoIdentidad` para alinear con los SPs ya escritos en `src/`.)
-- `Asistencia` — `id, Fecha, MarcaInicio datetime, MarcaFin datetime, idEmpleado`. `MarcaFin > MarcaInicio`.
-- `MovHoras` — `id, QHoras int, idAsistencia, idTipoMov`. Una asistencia puede tener hasta 3 filas (ordinarias, extras normales, extras dobles).
-- `HorarioJornada` — `id, idEmpleado, idSemana, idTipoJornada`. UNIQUE(`idEmpleado`, `idSemana`).
-- `PlanillaSemanal` — `id, SalarioBruto money, SalarioNeto money, idEmpleado, idSemana, idPlanillaMensual NULLABLE`. UNIQUE(`idEmpleado`, `idSemana`). `idPlanillaMensual` se llena en el cierre mensual.
-- `MovPlanilla` — `id, Fecha date, Monto money, NuevoSaldo money, idPlanillaSemanal, idTipoMov`. Hijos de la planilla semanal.
-- `PlanillaMensual` — `id, SalarioBruto money, idEmpleado, idMes`. UNIQUE(`idEmpleado`, `idMes`).
+### 1.3 Las 8 correcciones al modelo de Sebas (con cita al PDF)
 
-### 1.4 Deducciones y planes mensuales (4 tablas)
-
-- `DeduccionMensual` — `id, Monto money, idPlanillaMensual, idTipoDeduccion`. UNIQUE(`idPlanillaMensual`, `idTipoDeduccion`). Exigida por la sección 6 del PDF (acumulado mensual por tipo).
-- `EmpXTipoDed` — `id, FechaInicio date, FechaFin date NULLABLE, idEmpleado, idTipoDeduccion`. Asignación vigente (`FechaFin IS NULL`).
-- `EXTDPorcentual` — `idEmpXTipoDed` PK+FK → `EmpXTipoDed`, `Porcentaje decimal(8,4)`. 1:1 unidireccional.
-- `EXTDMontoFijo` — `idEmpXTipoDed` PK+FK → `EmpXTipoDed`, `Monto money`. 1:1 unidireccional.
-
-> **Regla de oro**: una fila de `EmpXTipoDed` puede tener fila **en `EXTDPorcentual` o en `EXTDMontoFijo`, nunca en ambas**. Lo garantiza el SP de asociación, no la BD (no se puede poner CHECK entre dos tablas distintas).
-
-### 1.5 Trazabilidad (3 tablas)
-
-- `BitacoraEvento` — `id, idTipoEvento, Descripcion varchar(512), idUsuario NULLABLE, IpPostIn, PostTime`. R07 del PDF. Todos los SPs insertan aquí dentro de la misma transacción.
-- `Error` — `id, Codigo (UNIQUE), Descripcion varchar(512)`. Catálogo de códigos semánticos `5xxxx` (50001–50011 ya sembrados).
-- `DBError` — `id, UserName, Number, State, Severity, Line, [Procedure], Message, DateTime`. Bitácora de excepciones no controladas de SQL Server. Los SPs la llenan en su bloque `CATCH`.
-
-> **Total: 29 tablas.**
+| # | Cambio | Justificación (PDF) |
+|---|---|---|
+| 1 | Quitar `Departamento`, `TipoDocIdentidad` | Mencionados solo en el XML de catálogos (p.7 §4); no aparecen en R01-R07 ni en §2 (cálculo de planilla). "Control de asistencia y Planilla Obrera" no las necesita. |
+| 2 | Agregar `MovHoras` | p.8 §4.4.5: *"en un caso extremo la asistencia del empleado a una fecha puede generar 3 movimientos"*. p.8: *"debe generarse movimientos en la planilla semanal"*. R04 (p.3): *"se visualizan, en un grid, para cada día de la semana … los movimientos que generó esa asistencia"*. Sebas solo guarda sumas — rompe R04. |
+| 3 | `Comprobante` de tabla a columna `VARBINARY(MAX) NULL` en `PlanillaSemanal` | El PDF no menciona `Comprobante` como entidad. R04 (p.3) enumera las columnas del grid y `Comprobante` no está. |
+| 4 | Quitar `ComprobanteHora` | Consecuencia de 3. |
+| 5 | Quitar `PlanillaSemanal.HorasOrdinarias/ExtraNormal/ExtraDoble` | Denormalización. p.8: *"debe generarse movimientos"*. p.10 §6: *"insertar movimientos por horas"*. Con `MovHoras` se obtiene por SQL agregado. |
+| 6 | `MarcaAsistencia` solo `idEmpleado` (sin `idSemana`/`idHorarioJornada`) | p.8: *"NO puede ser que inicien al siguiente día (a menos que se inserten jueves), pues aún no tendrán asignado una jornada de trabajo."* Si la FK fuera obligatoria, no podrían existir marcas sin horario. |
+| 7 | `BitacoraEvento`: `ip`→`IpPostIn`, `FechaHora`→`PostTime` | Cosmético, convención Tarea2-BD. |
+| 8 | `Feriado.Fecha` consultable al cierre | p.1: *"el valor de la hora extra es 1.5 … siempre que la hora trabajada no sea en domingo ni feriado, en cuyo caso es 2.0"*. p.8 §4.4.5: *"si la fecha es domingo o feriado, son horas extras dobles"*. El SP hace `MarcaAsistencia.Fecha IN (SELECT Fecha FROM Feriado)`. |
 
 ---
 
 ## 2. Convenciones
 
 ### 2.1 Naming
-- Tablas: `PascalCase` singular (`Empleado`, `PlanillaSemanal`). Excepciones: `Feriados` (plural, fiel al modelo conceptual).
+- Tablas: `PascalCase` singular.
 - Columnas: `PascalCase`. PK = `id` (minúscula, IDENTITY). FK = `idEntidad` (minúscula, ej. `idPuesto`, `idEmpleado`).
 - SPs: `sp_ActionEntity` (`sp_InsertarEmpleado`, `sp_ProcessWeeklyPayroll`).
 - Triggers: `trg_Tabla_Evento` (`trg_Empleado_Insert_AssignMandatoryDeductions`).
 - Cursores explícitos: prohibido. Usar `OUTPUT INTO` para capturar IDs nuevos.
 
 ### 2.2 Tipos de datos
-- Montos: `money`.
+- Montos: `decimal(10,2)` (equivalente a `money` para nuestros rangos).
 - Porcentajes: `decimal(8,4)` (rango 0–1).
 - Fechas: `date`. Fechas+hora: `datetime`. Horas de jornada: `time(0)`.
-- IDs: `int IDENTITY(1,1)` para **todas** las tablas (catálogos incluidos). Tarea2-BD lo hace así para uniformidad; el SP de carga de XML usa `WHERE NOT EXISTS` para idempotencia.
+- IDs: `int IDENTITY(1,1)` para todas las tablas (catálogos incluidos). Tarea2-BD lo hace así para uniformidad; el SP de carga de XML usa `WHERE NOT EXISTS` para idempotencia.
+- PDFs/images de comprobante: `varbinary(max)`.
 
 ### 2.3 Constraints
 - Toda FK: `FK_Origen_Destino`.
 - UNIQUE: `UQ_Tabla_Cols`.
 - CHECK: `CK_Tabla_Restriccion`.
-- Identificadores que se buscan por nombre (no por PK): `Puesto.Nombre`, `Usuario.Username`, `TipoEvento.Nombre`, `TipoMov.Nombre`, `TipoJornada.Nombre`.
+- Identificadores que se buscan por nombre (no por PK): `Puesto.Nombre`, `Usuario.Username`, `TipoEvento.Nombre`, `TipoMovimiento.Nombre`, `TipoJornada.Nombre`.
 
 ### 2.4 Plantilla de SP
 ```sql
@@ -105,18 +103,18 @@ BEGIN
     SET @outResultCode = 0;
 
     BEGIN TRY
-        -- logica de negocio
         -- BEGIN TRANSACTION
-        -- INSERT / UPDATE en BitacoraEvento
+        -- logica de negocio
+        -- INSERT en BitacoraEvento
         -- COMMIT
     END TRY
     BEGIN CATCH
         IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
 
         INSERT INTO [dbo].[DBError] ([UserName], [Number], [State], [Severity], [Line], [Procedure], [Message], [DateTime])
-        VALUES (SYSTEM_USER, ERROR_NUMBER(), CAST(ERROR_STATE() AS VARCHAR(32)),
-                CAST(ERROR_SEVERITY() AS VARCHAR(32)), ERROR_LINE(),
-                ISNULL(ERROR_PROCEDURE(), 'sp_AccionEntidad'), ERROR_MESSAGE(), GETDATE());
+        VALUES (SYSTEM_USER, ERROR_NUMBER(), ERROR_STATE(), ERROR_SEVERITY(),
+                ERROR_LINE(), ISNULL(ERROR_PROCEDURE(), 'sp_AccionEntidad'),
+                ERROR_MESSAGE(), GETDATE());
 
         SET @outResultCode = 50008;
     END CATCH
@@ -129,49 +127,45 @@ GO
 ## 3. Reglas de negocio (resumen para SPs)
 
 ### 3.1 Semana y mes planilla
-- **Semana**: viernes → jueves. Cierre: jueves 00:00.
+- **Semana**: viernes → jueves. Cierre: jueves 00:00 (medianoche).
 - **Mes planilla**: último viernes del mes anterior → último jueves del mes en curso. 4 o 5 semanas según cuántos jueves caigan.
-- Deducciones porcentuales: `SalarioBruto × porcentaje` (semanal).
-- Deducciones fijas: `MontoMensual / N` donde `N` = # de jueves en el mes planilla (4 ó 5).
+- Deducciones porcentuales: `SalarioBruto × Valor` (semanal) — el SP ve `EsPorcentual=1`.
+- Deducciones fijas: `Valor / NumJueves` — el SP ve `EsPorcentual=0`.
 
-### 3.2 Horas extra
-- **Ordinarias**: horas trabajadas dentro de la jornada × `SalarioXHora`.
-- **Extras normales**: horas trabajadas **después** del fin de jornada, no domingo/feriado × `SalarioXHora × 1.5`.
-- **Extras dobles**: horas extras en domingo/feriado × `SalarioXHora × 2.0`.
-- Solo horas **completas** (7.5 → 7).
-- Una asistencia puede generar hasta **3 movimientos** distintos.
+### 3.2 Horas extra (PDF p.8 §4.4.5)
+- **Ordinarias**: horas trabajadas dentro de la jornada × `SalarioXHora` → fila en `MovHoras` con `idTipoMov = <ordinarias>` + fila en `MovPlanilla` (crédito).
+- **Extras normales**: horas trabajadas **después** del fin de jornada, no domingo/feriado × `SalarioXHora × 1.5` → fila en `MovHoras` con `idTipoMov = <extras normales>` + fila en `MovPlanilla`.
+- **Extras dobles**: horas extras en domingo/feriado × `SalarioXHora × 2.0` → fila en `MovHoras` con `idTipoMov = <extras dobles>` + fila en `MovPlanilla`.
+- Solo horas **completas** (7.5 → 7). QHoras = INT en `MovHoras`.
+- **Una asistencia puede generar hasta 3 movimientos** distintos (ej: salida 3am del día siguiente siendo feriado).
 
 ### 3.3 Salario neto
 - `SalarioNeto = SalarioBruto - TotalDeducciones`.
-- Planilla semanal y mensual: ambas con `SalarioBruto`, `TotalDeducciones` (calculado en SP), `SalarioNeto`.
+- Planilla semanal y mensual: ambas con `SalarioBruto`, `TotalDeducciones`, `SalarioNeto`.
 
 ### 3.4 Cierre mensual
 Cuando el jueves es el **último jueves** del mes calendario:
-1. Cerrar planillas semanales del mes (asignar `idPlanillaMensual`).
+1. Cerrar planillas semanales del mes (asignar `idPlanillaMensual` en su tabla mensual).
 2. Acumular a `PlanillaMensual` por empleado.
 3. Crear encabezado del **siguiente mes** planilla (4 o 5 semanas).
 
 ### 3.5 Trigger
-`trg_Empleado_Insert_AssignMandatoryDeductions` (en `Tablas.sql`):
-- Al insertar un empleado, crea una fila en `EmpXTipoDed` por cada `TipoDeduccion` con `FlagObligatorio=1` (es decir, con fila en `DeduccionXLEy`).
-- Crea también la fila en `EXTDPorcentual` correspondiente, copiando el `Porcentaje` de `DeduccionXLEy`.
+`trg_Empleado_Insert_AssignMandatoryDeductions` (en `SQL/SCRIPTS/Trigger.sql`):
+- Al insertar un empleado, crea una fila en `DeduccionEmpleado` por cada `TipoDeduccion` con `EsObligatoria=1`.
+- Copia `TipoDeduccion.Valor` a `DeduccionEmpleado.MontoFijo` (sea % o monto fijo).
+- `FechaInicio = Empleado.FechaContratacion`, `FechaFin = '9999-12-31'` (sentinela de vigente).
 
 ---
 
 ## 4. Arquitectura
 
-- **DB**: SQL Server ≥ 2014, base `PlanillaDB`.
-- **Capa lógica**: Node.js + Express + `mssql`. Cero SQL embebido — todo vía SPs.
-- **Front**: HTML/CSS/JS servidos desde `public/`.
-- **Web layer**: 2 portales (admin y empleado) según SPEC.
-- **Auth**: `sp_Login` / `sp_Logout`. `Usuario.Tipo` = 1 admin, 2 empleado.
+- **DB**: SQL Server ≥ 2014, base `PlanillaDB` (se crea con `VaciarDB.sql`, esquema con `Tablas.sql`, trigger con `Trigger.sql`).
+- **Capa lógica**: el código actual en `src/` (Node.js + Express + `mssql`) **es copia literal de Tarea2-BD y no corresponde a este proyecto**. No basarse en él para SPs ni nombres.
+- **Auth**: `Usuario.Tipo='1'` admin, `Tipo='2'` empleado (PDF p.6).
 - **Trazabilidad**: cada SP inserta en `BitacoraEvento` dentro de la misma transacción; en `BEGIN CATCH` inserta en `DBError`.
 
 ### 4.1 Conexión
-`src/db/connection.ts` ya apunta a `PlanillaDB`. Credenciales hardcoded (sa / `Bd2Tarea2026!`) — son **dev only**, rotar antes de producción.
-
-### 4.2 Carga de errores
-El backend referencia `dbo.DBError` y `sp_GetError` (ver `src/utils/errorhelper.ts`). **Estas YA están en el esquema** (ver §1.5). El SP `sp_GetError` ya está disponible como referencia en `Tarea2-BD\SQL\SPs\sp_GetError.sql`.
+La conexión real está en `src/db/connection.ts` (asume base ya creada y SPs ya desplegados). Credenciales dev-only — rotar antes de producción.
 
 ---
 
@@ -183,9 +177,9 @@ El backend referencia `dbo.DBError` y `sp_GetError` (ver `src/utils/errorhelper.
 4. `sp_UpdateEmpleado` / `sp_DeleteEmpleado`.
 5. `sp_GetTiposMovimiento` (catálogo).
 6. `sp_GetMovimientos` / `sp_InsertMovimiento` (empleado consulta planilla).
-7. `sp_GetError` (helper — clonar de Tarea2-BD, ajustar `USE PlanillaDB`).
+7. `sp_GetError` (helper).
 8. `sp_CrearCalendario` (genera `Mes` y `Semana` con regla viernes→jueves, cierre último jueves).
-9. `sp_ProcesarAsistencia` (genera hasta 3 `MovHoras` por asistencia).
+9. `sp_ProcesarAsistencia` (genera hasta 3 `MovHoras` por asistencia + sus `MovPlanilla`).
 10. `sp_ProcesarPlanillaSemanal` (cierre jueves: deducciones, SalarioNeto).
 11. `sp_ProcesarPlanillaMensual` (último jueves: cierre de mes, siguiente ciclo).
 12. `sp_GetPlanillaSemanal` / `sp_GetPlanillaMensual` (R04/R05).
@@ -197,37 +191,31 @@ Todos con `SET XACT_ABORT ON; SET NOCOUNT ON;`, `BEGIN TRY / BEGIN CATCH`, y al 
 
 ## 6. Workflow del agente
 
-1. **Antes de cambiar esquema**: leer `Tablas.sql` y `SPEC.md` (PDF).
-2. **Antes de cambiar SPs**: leer este `AGENTS.md` y verificar el invariante con el backend en `src/controllers/`.
-3. **No añadir tablas que no estén en el modelo conceptual o el SPEC**, a menos que el usuario lo apruebe.
-4. **No usar SQL embebido en TS**: siempre `pool.request().execute('sp_...')`.
-5. **Cada cambio al esquema** requiere probar con el dataset de ejemplo (catal seed en `Tablas.sql` + INSERTs de prueba en scripts separados).
-6. **Mapeo XML → BD**: el SP de carga queda como scaffold en `CargarDatosXML.sql`. Hasta que se defina el XML final, la BD arranca con la semilla inline de `Tablas.sql` (Error + TipoEvento).
+1. **Antes de cambiar esquema**: leer `SQL/SCRIPTS/Tablas.sql` y `SQL/SCRIPTS/Trigger.sql`, y verificar contra el PDF (`Especificacion.pdf`).
+2. **Antes de cambiar SPs**: leer este `AGENTS.md` y verificar el invariante con `DBError`/`Error`/`BitacoraEvento` en `Tablas.sql`.
+3. **No añadir tablas que no estén en este AGENTS.md o el PDF**, a menos que el usuario lo apruebe.
+4. **No usar SQL embebido en TS** (cuando llegue el momento del backend): siempre `pool.request().execute('sp_...')`.
+5. **Cada cambio al esquema** requiere probar con el dataset de ejemplo (seed en `sp_CargarCatalogosXML` + INSERTs de prueba en scripts separados).
+6. **Mapeo XML → BD**: el SP de carga (`sp_CargarCatalogosXML`) es el único punto que lee el XML. Idempotente: `WHERE NOT EXISTS` o `MERGE`.
 
 ---
 
 ## 7. Riesgos identificados
 
-- **FKs bidireccionales entre `EmpXTipoDed` y `EXTDX*`**: solo van en una dirección (`EXTDX*` apunta a `EmpXTipoDed`).
-- **Subtipos de `TipoDeduccion`**: nunca debe existir un `TipoDeduccion` con filas en **dos** subtipos a la vez (XLEy **y** NoObligatoria, o NoObligatoria **y** ambas DeduccionPorcentual/DeduccionMontoFijo). Lo garantiza el SP de carga, no la BD.
+- **Asistencia sin horario**: si el `SP` de procesamiento de asistencia no encuentra `HorarioJornada` para esa semana, debe tratarlo como fuera de jornada (probablemente todo el tiempo es "extra" o se rechaza). Documentar el comportamiento esperado antes de implementar.
 - **Jornadas nocturnas**: una asistencia puede cruzar medianoche. Calcular siempre con `datetime`, no con `date` ni `time`.
 - **Mes planilla ≠ mes natural**: la apertura del siguiente mes ocurre cuando el jueves es el **último jueves del mes calendario**, no el último día.
-- **Carga inicial idempotente**: el SP `sp_CargarCatalogosXML` (scaffold) debe usar `WHERE NOT EXISTS` o `MERGE` cuando se implemente, para no duplicar si se corre 2 veces.
-- **Backend usa nombres específicos**: `ValorDocumentoIdentidad` (no `documentoIdentidad`), `sp_InsertarEmpleado` (con `r`). Si se renombran, hay que actualizar `src/` también.
+- **Carga inicial idempotente**: el SP `sp_CargarCatalogosXML` debe usar `WHERE NOT EXISTS` o `MERGE` cuando se implemente, para no duplicar si se corre 2 veces.
+- **Subtipo único de `TipoDeduccion`**: el modelo simplificado (Sebas) funde obligatoria/porcentual/fija en una sola tabla con flags. El SP que aplica la deducción es el responsable de interpretar `EsPorcentual` y `EsObligatoria` correctamente.
+- **`PlanillaSemanal.Comprobante`**: es `VARBINARY(MAX) NULL`. El SP que lo llena debe generar el PDF (o NULL si no se ha emitido). No hay tabla `Comprobante` que liste múltiples comprobantes por planilla.
+- **Cierre semanal sin movimientos**: si una semana no tuvo marcas para un empleado, el SP debe crear la `PlanillaSemanal` con saldos en 0 y aplicar deducciones igual (las deducciones porcentuales sobre 0 son 0; las fijas se dividen igual entre 4 ó 5).
 
 ---
 
-## 8. Anexo: cambios al modelo (vs esquema anterior)
+## 8. Anexo: archivos del proyecto SQL
 
-- **Agregadas** (fieles al modelo conceptual): `DeduccionXLEy`, `DeduccionNoObligatoria`, `DeduccionMontoFijo`, `DeduccionPorcentual`, `EXTDPorcentual`, `EXTDMontoFijo`, `DeduccionMensual`. Total +7 tablas de deducciones.
-- **Eliminadas** (corrección del profe): `Departamento`, `TipoDocumentoIdentidad`. Existían en el XML de operación pero no aportan a la lógica de planilla.
-- **Renombradas / normalizadas**:
-  - `TipoMovimiento` → `TipoMov` (modelo conceptual).
-  - `Feriado` → `Feriados` (plural del modelo).
-  - `EmpleadoXTipoDeduccion` → `EmpXTipoDed` (modelo).
-  - `EXTDXDeduccionPorcentual` → `EXTDPorcentual`, `EXTDXMontoFijo` → `EXTDMontoFijo` (modelo).
-- **Cambios estructurales**:
-  - Todos los `id` en minúscula (antes `Id`), siguiendo Tarea2-BD.
-  - `Puesto.id` ahora `IDENTITY(1,1)` (antes manual desde XML).
-  - Tablas `Error` y `DBError` añadidas (no estaban en el SPEC pero el backend `src/utils/errorhelper.ts` las referencia, y Tarea2-BD las aprueba).
-  - `BitacoraEvento.idUsuario` ahora NULLABLE (para login fallido sin usuario).
+- `SQL/SCRIPTS/VaciarDB.sql` — drop + create de la base vacía (en `master`).
+- `SQL/SCRIPTS/Tablas.sql` — 20 tablas + 22 FKs, en formato SSMS, `USE [PlanillaDB]`. Asume base preexistente.
+- `SQL/SCRIPTS/Trigger.sql` — `trg_Empleado_Insert_AssignMandatoryDeductions`.
+- `SQL/SCRIPTS/CargarDatosXML.sql` — scaffold de `sp_CargarCatalogosXML` (pendiente del XML final).
+- `ModeloSebas*.jpeg` — diagrama ER del compañero, referencia visual. No se commitea (evidencia del compañero).
