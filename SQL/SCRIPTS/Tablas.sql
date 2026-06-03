@@ -93,13 +93,27 @@ CONSTRAINT [PK_Empleado] PRIMARY KEY CLUSTERED
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
+/****** Object:  Table [dbo].[Error]    Script Date: 6/2/2026 12:00:00 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[Error](
+	[Codigo] [int] NOT NULL,
+	[Descripcion] [nvarchar](256) NOT NULL,
+CONSTRAINT [PK_Error] PRIMARY KEY CLUSTERED 
+(
+	[Codigo] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
 /****** Object:  Table [dbo].[Feriado]    Script Date: 6/2/2026 12:00:00 PM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
 CREATE TABLE [dbo].[Feriado](
-	[id] [int] IDENTITY(1,1) NOT NULL,
+	[id] [int] NOT NULL,
 	[Nombre] [varchar](128) NOT NULL,
 	[Fecha] [date] NOT NULL,
 CONSTRAINT [PK_Feriado] PRIMARY KEY CLUSTERED 
@@ -264,7 +278,7 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 CREATE TABLE [dbo].[TipoDeduccion](
-	[id] [int] IDENTITY(1,1) NOT NULL,
+	[id] [int] NOT NULL,
 	[Nombre] [varchar](128) NOT NULL,
 	[EsObligatoria] [bit] NOT NULL,
 	[EsPorcentual] [bit] NOT NULL,
@@ -282,7 +296,7 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 CREATE TABLE [dbo].[TipoEvento](
-	[id] [int] IDENTITY(1,1) NOT NULL,
+	[id] [int] NOT NULL,
 	[Nombre] [varchar](64) NOT NULL,
 CONSTRAINT [PK_TipoEvento] PRIMARY KEY CLUSTERED 
 (
@@ -296,7 +310,7 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 CREATE TABLE [dbo].[TipoJornada](
-	[id] [int] IDENTITY(1,1) NOT NULL,
+	[id] [int] NOT NULL,
 	[Nombre] [varchar](64) NOT NULL,
 	[HoraInicio] [time](0) NOT NULL,
 	[HoraFin] [time](0) NOT NULL,
@@ -312,7 +326,7 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 CREATE TABLE [dbo].[TipoMovimiento](
-	[id] [int] IDENTITY(1,1) NOT NULL,
+	[id] [int] NOT NULL,
 	[Nombre] [varchar](64) NOT NULL,
 	[Accion] [char](1) NOT NULL,
 CONSTRAINT [PK_TipoMovimiento] PRIMARY KEY CLUSTERED 
@@ -327,7 +341,7 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 CREATE TABLE [dbo].[Usuario](
-	[id] [int] IDENTITY(1,1) NOT NULL,
+	[id] [int] NOT NULL,
 	[Username] [varchar](64) NOT NULL,
 	[PasswordHash] [varchar](64) NOT NULL,
 	[Tipo] [varchar](2) NOT NULL,
