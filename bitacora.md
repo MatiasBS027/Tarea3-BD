@@ -258,3 +258,85 @@ Decidir el comportamiento de MarcaAsistencia sin HorarioJornada y documentarlo e
 Implementar los SPs en el orden de AGENTS.md §5, empezando por sp_Login/sp_Logout y sp_GetError (este último con dependencia de DBError y Error, revisar si la tabla Error sigue siendo necesaria en el modelo final).
 Definir el mecanismo de generación del PDF del Comprobante y el SP que lo asigna a PlanillaSemanal.Comprobante (VARBINARY MAX NULL).
 (Pendiente desde la sesión anterior) Clonar los SPs base desde Tarea2-BD y adaptarlos a PlanillaDB: sp_GetError, sp_Login, sp_Logout, sp_InsertarEmpleado, sp_GetEmpleados, sp_GetEmpleadoById, sp_UpdateEmpleado, sp_DeleteEmpleado.
+
+# Bitácora de Sesión
+
+Fecha: 02/06/2026
+
+Inicio: [15:30] | Fin: [17:00] || Total: [1 hora 30 minutos]
+
+Presente: Matías Benavides Sandoval
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+¿QUÉ HICIMOS HOY?
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Se discutió la estructura del XML de catálogos para Tarea3-BD, basándose en el XML de Tarea2-BD como referencia.
+Se analizó la cita del profe sobre las PK de tablas catálogo: "Las llaves de las tablas catálogo se insertan tal cual vienen en el archivo XML, excepto para Puestos cuyo mapeo será a través del nombre". Esto significa que las 6 tablas catálogo (TipoJornada, TipoEvento, TipoMovimiento, TipoDeduccion, Feriado, Usuario) NO deben tener IDENTITY; solo Puesto sí.
+Se quitó IDENTITY(1,1) de las 6 tablas catálogo en Tablas.sql y se agregó la tabla Error (Codigo INT PK, Descripcion NVARCHAR(256)) para los códigos 50001-50011. Validado: 21 tablas, 22 FKs, trigger OK.
+Se reescribió data/Datos.xml completo con la estructura acordada: 8 secciones (Puestos sin Id, TiposJornada/Feriados/TiposEvento/TiposMovimiento/TiposDeduccion/Usuarios/Error con Id), 0/1 para booleanos, atributos renombrados (EsObligatoria/EsPorcentual), fechas ISO, horas HH:MM:SS, straight double quotes.
+Se discutió y definió la división de trabajo entre Matías (Persona A) y el compañero (Persona B) para la implementación de SPs, frontend y backend. Se creó DIVISION_TRABAJO.md con 15 SPs divididos (8 para A, 7 para B), fases y validaciones.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PROBLEMAS DETECTADOS Y CÓMO SE RESOLVIERON
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Problema: el XML original de Datos.xml tenía comillas raras (curly quotes " "), tags mal formados (</ Feriados >, <\Catalogo>), atributos con Si/No en vez de 0/1, y nombres inconsistentes (Obligatorio vs EsObligatoria).
+Causa: el archivo era un borrador parcial de Tarea2-BD sin pulir.
+Solución: se reescribió completo desde cero con las convenciones acordadas: straight quotes, 0/1 para BIT, EsObligatoria/EsPorcentual, HH:MM:SS para horas, YYYY-MM-DD para fechas.
+
+Problema: el profe lista Departamento y TipoDocumentoIdentidad como secciones del XML de catálogos, pero nuestro modelo los excluyó (corrección #1 del AGENTS.md).
+Causa: el profe los menciona en la descripción general del XML pero no aportan a la lógica de planilla.
+Solución: se decidió ignorarlos en el SP de carga (opción b), ya que el modelo de 20 tablas no los requiere y incluirlos crearía tablas huérfanas sin uso.
+
+Problema: la propuesta inicial de división de trabajo incluía tablas y SPs del modelo viejo (29 tablas) que ya no existen (UsuarioAdministrador, DeduccionLey, DeduccionPorcentual, etc.).
+Causa: el proposal se basó en el modelo conceptual original, no en el modelo corregido de 20 tablas.
+Solución: se reescribió la división con los nombres correctos del modelo actual y se eliminaron los SPs de CRUD que el profe confirmó que no se requieren.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+DUDAS Y DIVERGENCIAS DE CRITERIO
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Sigue pendiente decidir el comportamiento del SP de procesamiento de asistencia cuando una MarcaAsistencia no tiene un HorarioJornada asignado para esa semana.
+Sigue pendiente el mecanismo de generación del PDF del Comprobante (PlanillaSemanal.Comprobante VARBINARY MAX NULL).
+Sigue abierta la decisión de cómo distinguir en la UI (grid de R04) si una MarcaAsistencia cayó en domingo o feriado.
+Se confirmó que el modelo de 21 tablas (20 + Error) es estable y no debería requerir más cambios estructurales.
+Se confirmó que no hay CRUD de empleados en la interfaz de usuario — solo el insert de empleado (que dispara el trigger) se hace por script o SP dedicado.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+AVANCE DEL CÓDIGO
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Se modificó SQL/SCRIPTS/Tablas.sql: quitado IDENTITY(1,1) de TipoJornada, TipoEvento, TipoMovimiento, TipoDeduccion, Feriado y Usuario. Agregada tabla Error (Codigo INT PK NOT NULL, Descripcion NVARCHAR(256) NOT NULL) entre Empleado y Feriado. Validado con VaciarDB.sql + Tablas.sql + Trigger.sql contra localhost\SQLEXPRESS: 21 tablas, 22 FKs, trigger dispara correctamente.
+Se reescribió data/Datos.xml completo: 8 secciones (Puestos(10), TiposJornada(3), Feriados(9), TiposEvento(14), TiposMovimiento(8), TiposDeduccion(4), Usuarios(3), Error(11)), 62 entradas totales. XML validado como bien formado con PowerShell [xml].
+Se creó DIVISION_TRABAJO.md con la división simplificada de trabajo entre Matías (Persona A, 8 SPs) y el compañero (Persona B, 7 SPs), incluyendo frontend, backend, validaciones y fases.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+MORALEJAS / BUENAS PRÁCTICAS
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Cuando el profe da una regla específica sobre el modelo (como "las PK de catálogo se insertan tal cual del XML"), aplicarla inmediatamente al esquema SQL en vez de postergarla — evita retrasos y inconsistencias.
+Antes de reescribir un archivo XML/SQL, leer la spec completa primero para no tener que volver a reescribir. En esta sesión se reescribió Datos.xml dos veces (primera vez incompleta, segunda vez completa).
+La división de trabajo debe basarse en el modelo actual, no en el conceptual original. Los nombres de tablas y SPs cambian entre versiones del modelo.
+Confirmar con el profe qué secciones del XML son obligatorias vs opcionales antes de diseñar la estructura. Evita incluir tablas que el modelo no requiere.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PRÓXIMA SESIÓN: ¿QUÉ SIGUE?
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Empezar la Fase 1 de la división de trabajo: sp_Login, sp_Logout, sp_GetError (Matías) y sp_CrearCalendario, sp_ProcesarAsistencia (compañero).
+Implementar sp_CargarCatalogosXML con la estructura real del XML de datos.
+Decidir el comportamiento de MarcaAsistencia sin HorarioJornada y documentarlo en AGENTS.md §7.
+Definir el mecanismo de generación del PDF del Comprobante.
