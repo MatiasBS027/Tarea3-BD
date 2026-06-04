@@ -30,9 +30,9 @@
         FERIADOS (Id del XML, NO identity)
     ====================================================== -->
     <Feriados>
+        <Feriado Id="2" Nombre="Jueves Santo" Fecha="2026-04-02"/>
+        <Feriado Id="3" Nombre="Viernes Santo" Fecha="2026-04-03"/>
         <Feriado Id="1" Nombre="Dia de Juan Santamaria" Fecha="2026-04-11"/>
-        <Feriado Id="2" Nombre="Jueves Santo" Fecha="2026-04-16"/>
-        <Feriado Id="3" Nombre="Viernes Santo" Fecha="2026-04-17"/>
         <Feriado Id="4" Nombre="Dia del trabajo" Fecha="2026-05-01"/>
         <Feriado Id="5" Nombre="Anexion del Nicoya" Fecha="2026-07-25"/>
         <Feriado Id="6" Nombre="Dia de la Virgen de los Angeles" Fecha="2026-08-02"/>
