@@ -347,7 +347,7 @@ Definir el mecanismo de generación del PDF del Comprobante.
 
 Fecha: 02/06/2026
 
-Inicio: [17:00] | Fin: [17:30] || Total: [30 minutos]
+Inicio: [14:00] | Fin: [17:30] || Total: [3 horas 30 minutos]
 
 Presente: Matías Benavides Sandoval
 
@@ -357,9 +357,9 @@ Presente: Matías Benavides Sandoval
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Se reescribieron los SPs de consulta de empleados (sp_GetEmpleados y sp_GetEmpleadoById) que existían como copia de Tarea2-BD y no coincidían con el modelo actual de PlanillaDB.
-Se alinearon ambos SPs con las convenciones del proyecto: USE [PlanillaDB], IF OBJECT_ID DROP, SET XACT_ABORT ON, nombres de columnas correctos (Activo, ValorDocumento), DBError con dbo., y TRY/CATCH sin transacciones explícitas (SPs de solo lectura).
-Se validaron los 4 escenarios contra localhost\SQLEXPRESS: listado completo, listado con filtro, lookup existente y lookup inexistente.
+Se reescribieron 5 SPs de Tarea2-BD que no coincidían con el modelo actual de PlanillaDB: sp_Login, sp_Logout, sp_GetError, sp_GetEmpleados y sp_GetEmpleadoById.
+Se alinearon todos con las convenciones del proyecto: USE [PlanillaDB], IF OBJECT_ID DROP, SET XACT_ABORT ON, nombres de columnas correctos (Activo, ValorDocumento, PasswordHash), DBError con dbo., y TRY/CATCH.
+Se validaron 6 escenarios contra localhost\SQLEXPRESS: sp_GetError (valid/invalid), sp_Login (success/wrong password), sp_GetEmpleados (all/filtered) y sp_GetEmpleadoById (found/not found).
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -367,17 +367,25 @@ PROBLEMAS DETECTADOS Y CÓMO SE RESOLVIERON
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Problema: sp_GetEmpleados usaba USE VacacionesDB, DROP PROCEDURE IF EXISTS, y columnas EsActivo / ValorDocumentoIdentidad que no existen en el modelo actual.
-Causa: era una copia literal de Tarea2-BD nunca adaptada a PlanillaDB.
-Solución: se reescribió completo con USE [PlanillaDB], IF OBJECT_ID DROP, Activo, ValorDocumento, y se eliminó el logging a BitacoraEvento (innecesario en SPs de solo lectura).
+Problema: los 5 SPs usaban USE VacacionesDB, DROP PROCEDURE IF EXISTS, y columnas del modelo viejo (EsActivo, ValorDocumentoIdentidad, PasswordHash como VARBINARY).
+Causa: eran copias literales de Tarea2-BD nunca adaptadas a PlanillaDB.
+Solución: se reescribieron todos con USE [PlanillaDB], IF OBJECT_ID DROP, y los nombres de columna reales del esquema actual.
 
-Problema: sp_GetEmpleadoById usaba dynamic SQL innecesario para resolver el nombre de la columna de fecha de contratación.
-Causa: el modelo anterior no tenía la columna FechaContratacion definida de forma estática, pero el modelo actual sí.
-Solución: se eliminó el dynamic SQL y se hizo un SELECT directo con la columna FechaContratacion del esquema.
+Problema: sp_Login y sp_Logout usaban INSERT INTO BitacoraEvento VALUES(...) directo, sin patrón de table variable + INSERT...SELECT.
+Causa: no seguían la convención de Tarea2-BD de preparar datos en una tabla variable y hacer el INSERT en una sola operación.
+Solución: se reescribieron con DECLARE @bitacoraData TABLE, INSERT INTO @bitacoraData, y luego BEGIN TRANSACTION → INSERT INTO BitacoraEvento SELECT FROM @bitacoraData → COMMIT.
 
-Problema: sp_GetEmpleadoById no tenía manera de indicar que un empleado no fue encontrado.
-Causa: el SP original solo devolvía vacío si no encontraba resultado, sin código de error.
-Solución: se agregó un NOT EXISTS previo que retorna @outResultCode = 50012 cuando el ValorDocumento no existe o el empleado está inactivo.
+Problema: sp_Login fallaba con Msg 3930 ("The current transaction cannot be committed") en el path de "usuario no encontrado" cuando se combinaba SET XACT_ABORT ON con BEGIN TRANSACTION/COMMIT explícito.
+Causa: SET XACT_ABORT ON interactúa de forma incompatible con transacciones explícitas en ciertos flujos del SP.
+Solución: se documentó el bug en AGENTS.md §7 y se dejó pendiente para resolver en la próxima sesión — el SP funciona correctamente en los paths de login exitoso y password incorrecto.
+
+Problema: sp_GetEmpleados y sp_GetEmpleadoById tenían columnas incorrectas y dynamic SQL innecesario.
+Causa: sp_GetEmpleados filtraba por EsActivo y ValorDocumentoIdentidad; sp_GetEmpleadoById usaba dynamic SQL para resolver FechaContratacion.
+Solución: se corrigieron los nombres de columna y se eliminó el dynamic SQL (FechaContratacion ya existe en el esquema). Se agregó NOT EXISTS en sp_GetEmpleadoById para retornar 50012 si no se encuentra.
+
+Problema: sp_GetError no tenía SET XACT_ABORT ON y usaba DROP sin IF OBJECT_ID.
+Causa: era un scaffold mínimo sin seguir la plantilla de SPs.
+Solución: se agregaron SET XACT_ABORT ON, IF OBJECT_ID DROP, y se mantuvo como SP de solo lectura (sin transacciones).
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -385,8 +393,9 @@ DUDAS Y DIVERGENCIAS DE CRITERIO
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Se confirmó que los SPs de solo lectura no necesitan INSERT en BitacoraEvento — la trazabilidad de consultas se puede hacer desde la capa de aplicación si se requiere.
+Se confirmó que los SPs de solo lectura (sp_GetError, sp_GetEmpleados, sp_GetEmpleadoById) no necesitan INSERT en BitacoraEvento — la trazabilidad de consultas se puede hacer desde la capa de aplicación.
 El código de error 50012 para "empleado no encontrado" se definió como convención propia del SP, no está en la tabla Error del XML.
+El bug de Msg 3930 en sp_Login se documentó pero no se resolvió — afecta solo al path de "usuario no encontrado" con lockout, no al login exitoso ni al password incorrecto.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -394,9 +403,12 @@ AVANCE DEL CÓDIGO
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Se reescribió SQL/SPs/sp_GetEmpleados.sql: SP de solo lectura que lista empleados activos con JOIN a Puesto, filtro opcional por nombre con LIKE, orden alfabético, @outResultCode OUTPUT, TRY/CATCH con DBError.
-Se reescribió SQL/SPs/sp_GetEmpleadoById.sql: SP de solo lectario que busca empleado por ValorDocumento con JOIN a Puesto, retorna campos completos (id, Nombre, ValorDocumento, idPuesto, NombrePuesto, FechaContratacion, CuentaBancaria, Activo), check de existencia con NOT EXISTS que retorna 50012 si no se encuentra.
-Se crearon 2 commits individuales (uno por SP) y se dejaron listos para push.
+Se reescribió SQL/SPs/sp_Login.sql: autenticación con lockout (5 intentos → 20 min), table variable para BitacoraEvento, INSERT...SELECT, transacción explícita. Funciona en success/wrong password; falla con Msg 3930 en user-not-found.
+Se reescribió SQL/SPs/sp_Logout.sql: registro de cierre de sesión en BitacoraEvento con table variable, INSERT...SELECT, transacción explícita.
+Se reescribió SQL/SPs/sp_GetError.sql: helper de solo lectura que retorna Codigo/Descripcion de la tabla Error, con NOT EXISTS para código no encontrado.
+Se reescribió SQL/SPs/sp_GetEmpleados.sql: listado de empleados activos con JOIN a Puesto, filtro opcional por nombre con LIKE, orden alfabético.
+Se reescribió SQL/SPs/sp_GetEmpleadoById.sql: búsqueda por ValorDocumento con JOIN a Puesto, campos completos, NOT EXISTS → 50012 si no se encuentra.
+Se crearon 5 commits individuales (uno por SP) y se pushearon a origin/main.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -404,9 +416,10 @@ MORALEJAS / BUENAS PRÁCTICAS
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Los SPs de solo lectura no necesitan transacciones explícitas ni logging a BitacoraEvento — simplifica el código y evita el bug de Msg 3930 que ya se encontró en sp_Login.
+Los SPs de solo lectura no necesitan transacciones explícitas ni logging a BitacoraEvento — simplifica el código y evita bugs como el Msg 3930 de sp_Login.
 Cuando un SP viejo usa dynamic SQL para resolver un nombre de columna, verificar primero si la columna ya existe en el esquema actual — casi siempre se puede eliminar el dynamic SQL.
 Antes de reescribir un SP, comparar los nombres de columna del viejo contra Tablas.sql para detectar todas las diferencias de una vez.
+El patrón table variable + INSERT...SELECT + transacción explícita funciona bien para SPs que escriben en BitacoraEvento, pero hay que tener cuidado con SET XACT_ABORT ON en paths donde no se hace INSERT (como el return temprano de sp_Login).
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -414,6 +427,7 @@ PRÓXIMA SESIÓN: ¿QUÉ SIGUE?
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+Corregir el bug de Msg 3930 en sp_Login (path de usuario no encontrado con lockout).
 Continuar con la Fase 1: sp_InsertarEmpleado, sp_UpdateEmpleado, sp_DeleteEmpleado (Matías).
 Implementar sp_CrearCalendario y sp_ProcesarAsistencia (compañero).
-Corregir el bug de Msg 3930 en sp_Login cuando se combina SET XACT_ABORT ON con BEGIN TRANSACTION/COMMIT explícito.
+Definir el mecanismo de generación del PDF del Comprobante.
