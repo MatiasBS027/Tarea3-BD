@@ -1,126 +1,157 @@
-USE VacacionesDB;
+USE [PlanillaDB];
 GO
 
 -- =====================================================
 -- SP: Login de usuario
 -- =====================================================
-DROP PROCEDURE IF EXISTS sp_Login;
+IF OBJECT_ID(N'dbo.sp_Login', N'P') IS NOT NULL
+    DROP PROCEDURE [dbo].[sp_Login];
 GO
 
-CREATE PROCEDURE sp_Login
-	@inUsername VARCHAR(128),
-	@inPassword VARCHAR(128),
-	@inIpPostIn VARCHAR(64),
-	@inPostTime DATETIME,
-	@outResultCode INT OUTPUT
+CREATE PROCEDURE [dbo].[sp_Login]
+    @inUsername VARCHAR(128),
+    @inPassword VARCHAR(128),
+    @inIpPostIn VARCHAR(64),
+    @inPostTime DATETIME,
+    @outResultCode INT OUTPUT
 AS
 BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
 
-	SET NOCOUNT ON;
+    SET @outResultCode = 0;
 
-	DECLARE @idUsuario INT,
-		@password VARCHAR(128),
-		@idTipoEventoSuccess INT,
-		@idTipoEventoFail INT,
-		@idTipoEventoDisabled INT,
-		@intentosFallidos INT,
-		@descripcion VARCHAR(512)
+    DECLARE @idUsuario INT,
+        @password VARCHAR(128),
+        @idEventoSuccess INT,
+        @idEventoFail INT,
+        @idEventoDisabled INT,
+        @intentosFallidos INT,
+        @descripcion VARCHAR(512);
 
-		SET @outResultCode = 0;
+    DECLARE @bitacoraData TABLE (
+        idTipoEvento INT,
+        Descripcion VARCHAR(512),
+        idUsuario INT,
+        IpPostIn VARCHAR(64),
+        PostTime DATETIME
+    );
 
-	BEGIN TRY
-			
-		SELECT @idTipoEventoSuccess = t.id
-		FROM dbo.TipoEvento t
-		WHERE t.Nombre = 'Login Exitoso';
+    BEGIN TRY
 
-		SELECT @idTipoEventoFail = t.id
-		FROM dbo.TipoEvento t
-		WHERE t.Nombre = 'Login No Exitoso';
+        SELECT @idEventoSuccess = t.id
+        FROM dbo.TipoEvento t
+        WHERE t.Nombre = 'Login Exitoso';
 
-		SELECT @idTipoEventoDisabled = t.id
-		FROM dbo.TipoEvento t
-		WHERE t.Nombre = 'Login deshabilitado';
+        SELECT @idEventoFail = t.id
+        FROM dbo.TipoEvento t
+        WHERE t.Nombre = 'Login No Exitoso';
 
-		-- Obtener datos del usuario
-		-- @idUsuario y @password serán NULL si no existe @inUsername en la BD
-		SELECT @idUsuario = u.id, @password = u.password
-		FROM dbo.Usuario u
-		WHERE u.Username = @inUsername;
+        SELECT @idEventoDisabled = t.id
+        FROM dbo.TipoEvento t
+        WHERE t.Nombre = 'Login deshabilitado';
 
-		-- Verificar que existe usuario
-		IF @idUsuario IS NULL
-		BEGIN
+        SELECT @idUsuario = u.id, @password = u.PasswordHash
+        FROM dbo.Usuario u
+        WHERE u.Username = @inUsername;
 
-			-- Contat intentos fallidos por IP en los ultimos 20 min
-			SELECT @intentosFallidos = COUNT(*)
-			FROM dbo.BitacoraEvento b
-			WHERE b.idTipoEvento = @idTipoEventoFail
-				AND b.IpPostIn = @inIpPostIn
-				AND b.PostTime >= DATEADD(MINUTE, -20, @inPostTime);
-			
-			IF @intentosFallidos >= 5
-			BEGIN
-				SET @outResultCode = 50003;
+        IF @idUsuario IS NULL
+        BEGIN
+            SELECT @intentosFallidos = COUNT(*)
+            FROM dbo.BitacoraEvento b
+            WHERE b.idTipoEvento = @idEventoFail
+                AND b.IpPostIn = @inIpPostIn
+                AND b.PostTime >= DATEADD(MINUTE, -20, @inPostTime);
 
-				INSERT INTO dbo.BitacoraEvento (idTipoEvento, Descripcion, idUsuario, IpPostIn, PostTime)
-				VALUES (@idTipoEventoDisabled, NULL, NULL, @inIpPostIn, @inPostTime)
+            IF @intentosFallidos >= 5
+            BEGIN
+                SET @outResultCode = 50003;
 
-				RETURN;
-			END
+                INSERT INTO @bitacoraData
+                SELECT @idEventoDisabled, NULL, NULL, @inIpPostIn, @inPostTime;
 
-			SET @descripcion = 'Intento: ' + CAST(@intentosFallidos + 1 AS VARCHAR(10))
-				+ ' | Error: ' + (SELECT Descripcion FROM dbo.Error WHERE Codigo = 50001);
+                BEGIN TRANSACTION
+                    INSERT INTO dbo.BitacoraEvento (idTipoEvento, Descripcion, idUsuario, IpPostIn, PostTime)
+                    SELECT idTipoEvento, Descripcion, idUsuario, IpPostIn, PostTime
+                    FROM @bitacoraData;
+                COMMIT TRANSACTION;
 
-			INSERT INTO dbo.BitacoraEvento (idTipoEvento, Descripcion, idUsuario, IpPostIn, PostTime)
-			VALUES (@idTipoEventoFail, @descripcion, NULL, @inIpPostIn, @inPostTime);
+                RETURN;
+            END
 
-			SET @outResultCode = 50001;
-			RETURN;
-		END
+            SET @descripcion = 'Intento: ' + CAST(@intentosFallidos + 1 AS VARCHAR(10))
+                + ' | Error: ' + (SELECT Descripcion FROM dbo.Error WHERE Codigo = 50001);
 
-		-- Contar intentos fallidos en los ultimos 20 min
-		SELECT @intentosFallidos = COUNT(*)
-		FROM dbo.BitacoraEvento b
-		WHERE b.idTipoEvento = @idTipoEventoFail
-			AND b.idUsuario = @idUsuario
-			AND b.IpPostIn = @inIpPostIn
-			AND b.PostTime >= DATEADD(MINUTE, -20, @inPostTime);
+            INSERT INTO @bitacoraData
+            SELECT @idEventoFail, @descripcion, NULL, @inIpPostIn, @inPostTime;
 
-		IF @intentosFallidos >= 5
-		BEGIN
-			SET @outResultCode = 50003;
+            BEGIN TRANSACTION
+                INSERT INTO dbo.BitacoraEvento (idTipoEvento, Descripcion, idUsuario, IpPostIn, PostTime)
+                SELECT idTipoEvento, Descripcion, idUsuario, IpPostIn, PostTime
+                FROM @bitacoraData;
+            COMMIT TRANSACTION;
 
-			INSERT INTO dbo.BitacoraEvento (idTipoEvento, Descripcion, idUsuario, IpPostIn, PostTime)
-			VALUES (@idTipoEventoDisabled, NULL, @idUsuario, @inIpPostIn, @inPostTime)
+            SET @outResultCode = 50001;
+            RETURN;
+        END
 
-			RETURN;
-		END
+        SELECT @intentosFallidos = COUNT(*)
+        FROM dbo.BitacoraEvento b
+        WHERE b.idTipoEvento = @idEventoFail
+            AND b.idUsuario = @idUsuario
+            AND b.IpPostIn = @inIpPostIn
+            AND b.PostTime >= DATEADD(MINUTE, -20, @inPostTime);
 
-		-- Verficar password
-		IF @password <> @inPassword
-		BEGIN
-			SET @outResultCode = 50002;
+        IF @intentosFallidos >= 5
+        BEGIN
+            SET @outResultCode = 50003;
 
-			SET @descripcion = 'Intento: ' + CAST(@intentosFallidos + 1 AS VARCHAR(10))
+            INSERT INTO @bitacoraData
+            SELECT @idEventoDisabled, NULL, @idUsuario, @inIpPostIn, @inPostTime;
+
+            BEGIN TRANSACTION
+                INSERT INTO dbo.BitacoraEvento (idTipoEvento, Descripcion, idUsuario, IpPostIn, PostTime)
+                SELECT idTipoEvento, Descripcion, idUsuario, IpPostIn, PostTime
+                FROM @bitacoraData;
+            COMMIT TRANSACTION;
+
+            RETURN;
+        END
+
+        IF @password <> @inPassword
+        BEGIN
+            SET @outResultCode = 50002;
+
+            SET @descripcion = 'Intento: ' + CAST(@intentosFallidos + 1 AS VARCHAR(10))
                 + ' | Error: ' + (SELECT Descripcion FROM dbo.Error WHERE Codigo = 50002);
 
+            INSERT INTO @bitacoraData
+            SELECT @idEventoFail, @descripcion, @idUsuario, @inIpPostIn, @inPostTime;
+
+            BEGIN TRANSACTION
+                INSERT INTO dbo.BitacoraEvento (idTipoEvento, Descripcion, idUsuario, IpPostIn, PostTime)
+                SELECT idTipoEvento, Descripcion, idUsuario, IpPostIn, PostTime
+                FROM @bitacoraData;
+            COMMIT TRANSACTION;
+
+            RETURN;
+        END
+
+        INSERT INTO @bitacoraData
+        SELECT @idEventoSuccess, 'Exitoso', @idUsuario, @inIpPostIn, @inPostTime;
+
+        BEGIN TRANSACTION
             INSERT INTO dbo.BitacoraEvento (idTipoEvento, Descripcion, idUsuario, IpPostIn, PostTime)
-            VALUES (@idTipoEventoFail, @descripcion, @idUsuario, @inIpPostIn, @inPostTime);
+            SELECT idTipoEvento, Descripcion, idUsuario, IpPostIn, PostTime
+            FROM @bitacoraData;
+        COMMIT TRANSACTION;
 
-			RETURN;
-		END
+        SET @outResultCode = 0;
 
-		-- Si Login exitoso
-		INSERT INTO BitacoraEvento (idTipoEvento, Descripcion, idUsuario, IpPostIn, PostTime)
-        VALUES (@idTipoEventoSuccess, 'Exitoso', @idUsuario, @inIpPostIn, @inPostTime);
+    END TRY
+    BEGIN CATCH
 
-		SET @outResultCode = 0;
-		
-	END TRY
-	BEGIN CATCH
-		
-		INSERT INTO DBError (UserName, Number, State, Severity, Line, [Procedure], Message, DateTime)
+        INSERT INTO DBError (UserName, Number, State, Severity, Line, [Procedure], Message, DateTime)
         VALUES (
             SYSTEM_USER,
             ERROR_NUMBER(),
@@ -134,6 +165,6 @@ BEGIN
 
         SET @outResultCode = 50008;
 
-	END CATCH
+    END CATCH
 END;
 GO
