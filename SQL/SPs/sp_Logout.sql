@@ -1,54 +1,69 @@
-USE VacacionesDB;
+USE [PlanillaDB];
 GO
 
 -- =====================================================
 -- SP: Logout de usuario
 -- =====================================================
-
-DROP PROCEDURE IF EXISTS sp_Logout;
+IF OBJECT_ID(N'dbo.sp_Logout', N'P') IS NOT NULL
+    DROP PROCEDURE [dbo].[sp_Logout];
 GO
 
-CREATE PROCEDURE sp_Logout
-	@inIdUsuario INT,
-	@inIpPostIn VARCHAR(64),
-	@inPostTime DATETIME,
-	@outResultCode INT OUTPUT
+CREATE PROCEDURE [dbo].[sp_Logout]
+    @inIdUsuario INT,
+    @inIpPostIn VARCHAR(64),
+    @inPostTime DATETIME,
+    @outResultCode INT OUTPUT
 AS
 BEGIN
-	SET NOCOUNT ON
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
 
-	DECLARE @idTipoEventoLogout INT;
+    SET @outResultCode = 0;
 
-	SET @outResultCode = 0;
+    DECLARE @idTipoEventoLogout INT;
 
-	BEGIN TRY
+    DECLARE @bitacoraData TABLE (
+        idTipoEvento INT,
+        Descripcion VARCHAR(512),
+        idUsuario INT,
+        IpPostIn VARCHAR(64),
+        PostTime DATETIME
+    );
 
-		SELECT @idTipoEventoLogout = t.id
-		FROM dbo.TipoEvento t
-		WHERE t.Nombre = 'Logout';
+    BEGIN TRY
 
-		INSERT INTO dbo.BitacoraEvento (idTipoEvento,Descripcion, idUsuario, IpPostIn, PostTime)
-		VALUES (@idTipoEventoLogout, NULL, @inIdUsuario, @inIpPostIn, @inPostTime)
+        SELECT @idTipoEventoLogout = t.id
+        FROM dbo.TipoEvento t
+        WHERE t.Nombre = 'Logout';
 
-		SET @outResultCode = 0;
-	
-	END TRY
-	BEGIN CATCH
+        INSERT INTO @bitacoraData
+        SELECT @idTipoEventoLogout, NULL, @inIdUsuario, @inIpPostIn, @inPostTime;
 
-		INSERT INTO dbo.DBError (UserName, Number, State, Severity, Line, [Procedure], Message, DateTime)
-		VALUES (
-			SYSTEM_USER,
-			ERROR_NUMBER(),
-			CAST(ERROR_STATE() AS VARCHAR(32)),
-			CAST(ERROR_SEVERITY() AS VARCHAR(32)),
-			ERROR_LINE(),
-			ISNULL(ERROR_PROCEDURE(), 'sp_Logout'),
-			ERROR_MESSAGE(),
-			GETDATE()
-		);
-		
-		SET @outResultCode = 50008
+        BEGIN TRANSACTION
+            INSERT INTO dbo.BitacoraEvento (idTipoEvento, Descripcion, idUsuario, IpPostIn, PostTime)
+            SELECT idTipoEvento, Descripcion, idUsuario, IpPostIn, PostTime
+            FROM @bitacoraData;
+        COMMIT TRANSACTION;
 
-	END CATCH
+        SET @outResultCode = 0;
+
+    END TRY
+    BEGIN CATCH
+
+        INSERT INTO DBError (UserName, Number, State, Severity, Line, [Procedure], Message, DateTime)
+        VALUES (
+            SYSTEM_USER,
+            ERROR_NUMBER(),
+            CAST(ERROR_STATE()    AS VARCHAR(32)),
+            CAST(ERROR_SEVERITY() AS VARCHAR(32)),
+            ERROR_LINE(),
+            ISNULL(ERROR_PROCEDURE(), 'sp_Logout'),
+            ERROR_MESSAGE(),
+            GETDATE()
+        );
+
+        SET @outResultCode = 50008;
+
+    END CATCH
 END;
 GO
