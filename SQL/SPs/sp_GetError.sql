@@ -1,26 +1,30 @@
-USE VacacionesDB;
+USE [PlanillaDB];
 GO
 
 -- =====================================================
--- SP 3: Obtener descripcion de error por codigo
+-- SP: Obtener descripcion de error por codigo
 -- =====================================================
-DROP PROCEDURE IF EXISTS sp_GetError;
+IF OBJECT_ID(N'dbo.sp_GetError', N'P') IS NOT NULL
+    DROP PROCEDURE [dbo].[sp_GetError];
 GO
 
-CREATE PROCEDURE sp_GetError
+CREATE PROCEDURE [dbo].[sp_GetError]
     @inCodigo INT,
     @outResultCode INT OUTPUT
 AS
 BEGIN
     SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+
+    SET @outResultCode = 0;
 
     BEGIN TRY
-        IF EXISTS (SELECT 1 FROM [Error] WHERE Codigo = @inCodigo)
+        IF EXISTS (SELECT 1 FROM [dbo].[Error] WHERE Codigo = @inCodigo)
         BEGIN
             SELECT
                 Codigo,
                 Descripcion
-            FROM [Error]
+            FROM [dbo].[Error]
             WHERE Codigo = @inCodigo;
 
             SET @outResultCode = 0;
@@ -31,11 +35,12 @@ BEGIN
         END;
     END TRY
     BEGIN CATCH
-        INSERT INTO DBError ([UserName], [Number], [State], [Severity], [Line], [Procedure], [Message], [DateTime])
+
+        INSERT INTO DBError (UserName, Number, State, Severity, Line, [Procedure], Message, DateTime)
         VALUES (
             SYSTEM_USER,
             ERROR_NUMBER(),
-            CAST(ERROR_STATE() AS VARCHAR(32)),
+            CAST(ERROR_STATE()    AS VARCHAR(32)),
             CAST(ERROR_SEVERITY() AS VARCHAR(32)),
             ERROR_LINE(),
             ISNULL(ERROR_PROCEDURE(), 'sp_GetError'),
@@ -44,5 +49,7 @@ BEGIN
         );
 
         SET @outResultCode = 50008;
+
     END CATCH
 END;
+GO
