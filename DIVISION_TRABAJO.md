@@ -35,7 +35,7 @@ Proyecto en parejas. Ambos hacen front, back, SQL y SPs. Revisión cruzada al fi
 | `sp_RegresarAdmin` | Baja | R06 |
 | `sp_GetTiposMovimiento` | Baja | Catálogo para R04 |
 
-### Persona B — Compañero (7 SPs)
+### Persona B — Seastian (7 SPs)
 
 | SP | Complejidad | Requisito |
 |----|-------------|-----------|
@@ -51,7 +51,7 @@ Proyecto en parejas. Ambos hacen front, back, SQL y SPs. Revisión cruzada al fi
 
 ## Frontend
 
-| Persona A (Matías) | Persona B (Compañero) |
+| Persona A (Matías) | Persona B (Sebastian) |
 |---------------------|------------------------|
 | Login | Pantallas empleado |
 | Pantallas admin (R01, R02, R03, R06) | Planilla semanal (R04) |
@@ -61,7 +61,7 @@ Proyecto en parejas. Ambos hacen front, back, SQL y SPs. Revisión cruzada al fi
 
 ## Backend
 
-| Persona A (Matías) | Persona B (Compañero) |
+| Persona A (Matías) | Persona B (Sebastian) |
 |---------------------|------------------------|
 | Auth middleware | Rutas planilla |
 | Rutas admin (empleados, puestos) | Cálculos de planilla |
@@ -71,7 +71,7 @@ Proyecto en parejas. Ambos hacen front, back, SQL y SPs. Revisión cruzada al fi
 
 ## Validaciones
 
-| Persona A (Matías) | Persona B (Compañero) |
+| Persona A (Matías) | Persona B (Sebastian) |
 |---------------------|------------------------|
 | Nombre alfabético | Horas extra (ordinarias, 1.5x, 2x) |
 | ValorDocumentoID duplicado | Feriados vs domingos |

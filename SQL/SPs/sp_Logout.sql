@@ -16,7 +16,6 @@ CREATE PROCEDURE [dbo].[sp_Logout]
 AS
 BEGIN
     SET NOCOUNT ON;
-    SET XACT_ABORT ON;
 
     SET @outResultCode = 0;
 
@@ -37,7 +36,7 @@ BEGIN
         WHERE t.Nombre = 'Logout';
 
         INSERT INTO @bitacoraData
-        SELECT @idTipoEventoLogout, NULL, @inIdUsuario, @inIpPostIn, @inPostTime;
+        SELECT @idTipoEventoLogout, '', @inIdUsuario, @inIpPostIn, @inPostTime;
 
         BEGIN TRANSACTION
             INSERT INTO dbo.BitacoraEvento (idTipoEvento, Descripcion, idUsuario, IpPostIn, PostTime)
@@ -49,6 +48,8 @@ BEGIN
 
     END TRY
     BEGIN CATCH
+
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
 
         INSERT INTO DBError (UserName, Number, State, Severity, Line, [Procedure], Message, DateTime)
         VALUES (

@@ -8,7 +8,7 @@ GO
 CREATE TABLE [dbo].[BitacoraEvento](
 	[id] [int] IDENTITY(1,1) NOT NULL,
 	[idTipoEvento] [int] NOT NULL,
-	[idUsuario] [int] NOT NULL,
+	[idUsuario] [int] NULL,
 	[PostTime] [datetime] NOT NULL,
 	[IpPostIn] [varchar](64) NOT NULL,
 	[Descripcion] [nvarchar](512) NOT NULL,
@@ -65,6 +65,7 @@ GO
 CREATE TABLE [dbo].[DeduccionXMes](
 	[id] [int] IDENTITY(1,1) NOT NULL,
 	[idPlanillaMensual] [int] NOT NULL,
+	[idEmpleado] [int] NOT NULL,
 	[idTipoDeduccion] [int] NOT NULL,
 	[MontoTotal] [decimal](10, 2) NOT NULL,
 CONSTRAINT [PK_DeduccionXMes] PRIMARY KEY CLUSTERED 
@@ -179,6 +180,7 @@ GO
 CREATE TABLE [dbo].[MovHoras](
 	[id] [int] IDENTITY(1,1) NOT NULL,
 	[QHoras] [int] NOT NULL,
+	[Monto] [decimal](10, 2) NOT NULL,
 	[idAsistencia] [int] NOT NULL,
 	[idTipoMov] [int] NOT NULL,
 CONSTRAINT [PK_MovHoras] PRIMARY KEY CLUSTERED 
@@ -380,6 +382,11 @@ ALTER TABLE [dbo].[DeduccionXMes]  WITH CHECK ADD  CONSTRAINT [FK_DeduccionXMes_
 REFERENCES [dbo].[TipoDeduccion] ([id])
 GO
 ALTER TABLE [dbo].[DeduccionXMes] CHECK CONSTRAINT [FK_DeduccionXMes_TipoDeduccion]
+GO
+ALTER TABLE [dbo].[DeduccionXMes]  WITH CHECK ADD  CONSTRAINT [FK_DeduccionXMes_Empleado] FOREIGN KEY([idEmpleado])
+REFERENCES [dbo].[Empleado] ([id])
+GO
+ALTER TABLE [dbo].[DeduccionXMes] CHECK CONSTRAINT [FK_DeduccionXMes_Empleado]
 GO
 ALTER TABLE [dbo].[Empleado]  WITH CHECK ADD  CONSTRAINT [FK_Empleado_Puesto] FOREIGN KEY([idPuesto])
 REFERENCES [dbo].[Puesto] ([id])

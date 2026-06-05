@@ -1,42 +1,56 @@
-USE VacacionesDB;
+USE [PlanillaDB];
 GO
 
 -- =====================================================
--- SP: Obtener todos los tipos de movimiento
+-- SP: Obtener todos los tipos de movimiento (R04)
 -- =====================================================
-DROP PROCEDURE IF EXISTS sp_GetTiposMovimiento;
+IF OBJECT_ID(N'dbo.sp_GetTiposMovimiento', N'P') IS NOT NULL
+    DROP PROCEDURE [dbo].[sp_GetTiposMovimiento];
 GO
 
-CREATE PROCEDURE sp_GetTiposMovimiento
-	@outResultCode INT OUTPUT
+CREATE PROCEDURE [dbo].[sp_GetTiposMovimiento]
+    @inAccion CHAR(1) = NULL,
+    @outResultCode INT OUTPUT
 AS
 BEGIN
-	SET NOCOUNT ON;
+    SET NOCOUNT ON;
+    SET @outResultCode = 0;
 
-	BEGIN TRY
+    BEGIN TRY
+        IF @inAccion IS NULL
+        BEGIN
+            SELECT
+                id,
+                Nombre,
+                Accion
+            FROM dbo.TipoMovimiento
+            ORDER BY Accion ASC, Nombre ASC;
+        END
+        ELSE
+        BEGIN
+            SELECT
+                id,
+                Nombre,
+                Accion
+            FROM dbo.TipoMovimiento
+            WHERE Accion = @inAccion
+            ORDER BY Nombre ASC;
+        END
+    END TRY
+    BEGIN CATCH
+        INSERT INTO [dbo].[DBError] ([UserName], [Number], [State], [Severity], [Line], [Procedure], [Message], [DateTime])
+        VALUES (
+            SYSTEM_USER,
+            ERROR_NUMBER(),
+            ERROR_STATE(),
+            ERROR_SEVERITY(),
+            ERROR_LINE(),
+            ISNULL(ERROR_PROCEDURE(), 'sp_GetTiposMovimiento'),
+            ERROR_MESSAGE(),
+            GETDATE()
+        );
 
-		SELECT t.id, t.Nombre, t.TipoAccion
-		FROM dbo.TipoMovimiento t
-		ORDER BY Nombre ASC;
-
-		SET @outResultCode = 0;
-
-	END TRY
-	BEGIN CATCH
-		
-		INSERT INTO dbo.DBError (UserName, Number, State, Severity, Line, [Procedure], Message, DateTime)
-		Values(
-			SYSTEM_USER,
-			ERROR_NUMBER(),
-			CAST(ERROR_STATE() AS VARCHAR(32)),
-			CAST(ERROR_SEVERITY() AS VARCHAR(32)),
-			ERROR_LINE(),
-			ISNULL(ERROR_PROCEDURE(), 'sp_GetTiposMovimiento'),
-			ERROR_MESSAGE(),
-			GETDATE()
-		);
-
-		SET @outResultCode = 50008;
-	END CATCH
+        SET @outResultCode = 50008;
+    END CATCH
 END;
 GO
