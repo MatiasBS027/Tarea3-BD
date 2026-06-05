@@ -8,7 +8,7 @@ GO
 CREATE TABLE [dbo].[BitacoraEvento](
 	[id] [int] IDENTITY(1,1) NOT NULL,
 	[idTipoEvento] [int] NOT NULL,
-	[idUsuario] [int] NOT NULL,
+	[idUsuario] [int] NULL,
 	[PostTime] [datetime] NOT NULL,
 	[IpPostIn] [varchar](64) NOT NULL,
 	[Descripcion] [nvarchar](512) NOT NULL,
