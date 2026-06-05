@@ -436,88 +436,9 @@ Definir el mecanismo de generación del PDF del Comprobante.
 
 # Bitácora de Sesión
 
-Fecha: 02/06/2026
+Fecha: 02-04/06/2026
 
-Inicio: [17:30] | Fin: [18:00] || Total: [30 minutos]
-
-Presente: Matías Benavides Sandoval
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-¿QUÉ HICIMOS HOY?
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Se recibieron 3 dudas de Sebas sobre el modelo conceptual y se analizaron contra el PDF textual (especificacion.md).
-Se confirmó que las 3 dudas eran válidas: MovHoras sin Monto, MovHoras sin idPlanillaSemanal (esta última opcional), y DeduccionXMes sin idEmpleado.
-Se modificaron las tablas MovHoras (agregado Monto DECIMAL(10,2)) y DeduccionXMes (agregado idEmpleado INT NOT NULL + FK) en Tablas.sql.
-Se recreó PlanillaDB completa (VaciarDB.sql + Tablas.sql + Trigger.sql) y se validó: 21 tablas, 23 FKs, trigger OK.
-Se actualizó AGENTS.md con los nuevos campos y conteos.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-PROBLEMAS DETECTADOS Y CÓMO SE RESOLVIERON
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Problema: MovHoras no tenía campo Monto, pero el PDF dice "crear un movimiento cuyo monto es X".
-Causa: el modelo original de Sebas solo guardaba QHoras y el monto se calculaba after-the-fact.
-Solución: se agregó Monto DECIMAL(10,2) NOT NULL a MovHoras. El SP de procesamiento de asistencia calculará QHoras × SalarioXHora × factor y lo guardará directamente.
-
-Problema: DeduccionXMes no tenía idEmpleado, pero el PDF dice "DeduccionesXEmpleadoxMes".
-Causa: el modelo original infería el empleado transitivamente vía PlanillaMensual.
-Solución: se agregó idEmpleado INT NOT NULL con FK a Empleado. La tabla ahora refleja el nombre del PDF y facilita las queries por empleado.
-
-Problema: MovHoras no tenía vínculo directo a PlanillaSemanal.
-Causa: el modelo original usaba un camino indirecto (MovHoras → MarcaAsistencia → Empleado → buscar PlanillaSemanal).
-Solución: se decidió NO agregar idPlanillaSemanal a MovHoras porque MovPlanilla ya funciona como bridge table y el diseño actual es válido.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-DUDAS Y DIVERGENCIAS DE CRITERIO
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Se confirmó que idPlanillaSemanal en MovHoras es opcional — el diseño actual con MovPlanilla como bridge es válido.
-El bug de Msg 3930 en sp_Login sigue pendiente (no se tocó en esta sesión).
-El modelo final ahora es: 21 tablas, 23 FKs, 1 trigger.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-AVANCE DEL CÓDIGO
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Se modificó SQL/SCRIPTS/Tablas.sql: agregado Monto DECIMAL(10,2) NOT NULL a MovHoras, agregado idEmpleado INT NOT NULL a DeduccionXMes con FK_DeduccionXMes_Empleado.
-Se recreó PlanillaDB completa y se validó contra localhost\SQLEXPRESS: 21 tablas, 23 FKs, trigger funciona correctamente.
-Se actualizó AGENTS.md: §1.2 (21 tablas, 23 FKs), tabla MovHoras (agregado Monto), tabla DeduccionXMes (agregado idEmpleado), §3.2 (reglas de horas con Monto).
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-MORALEJAS / BUENAS PRÁCTICAS
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Cuando un compañero levanta una duda sobre el modelo, comparar contra el PDF textual (no contra el SPEC.md resumido) para tener la respuesta más precisa.
-Los cambios de esquema (agregar columnas) son seguros si no hay SPs existentes que dependan de las tablas modificadas — en este caso, los SPs que usarán MovHoras y DeduccionXMes aún no se han escrito.
-Antes de recrear la base, verificar el orden de DELETEs respetando FKs para poder limpiar datos de prueba.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-PRÓXIMA SESIÓN: ¿QUÉ SIGUE?
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Corregir el bug de Msg 3930 en sp_Login (path de usuario no encontrado con lockout).
-Continuar con la Fase 1: sp_InsertarEmpleado, sp_UpdateEmpleado, sp_DeleteEmpleado (Matías).
-Implementar sp_CrearCalendario y sp_ProcesarAsistencia (compañero) — ya con los campos Monto e idEmpleado disponibles.
-Definir el mecanismo de generación del PDF del Comprobante.
-
-━━━━━
-
-Fecha: 04/06/2026
-
-Inicio: [11:30] | Fin: [13:00] || Total: [1.5 horas]
+Inicio: [17:30 del 02/06] | Fin: [13:00 del 04/06] || Total: [2 horas, fraccionadas en 2 días]
 
 Presente: Matías Benavides Sandoval
 
@@ -527,7 +448,11 @@ Presente: Matías Benavides Sandoval
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Se reescribieron los 3 SPs pendientes de la persona A: sp_GetTiposMovimiento, sp_ImpersonarEmpleado y sp_RegresarAdmin. Se actualizó data/Datos.xml con los TiposEvento 15 (Impersonar empleado) y 16 (Regresar a interfaz de administrador) y los códigos de error 50012 (Empleado no existe o está inactivo) y 50013 (Usuario no es administrador). Se actualizó AGENTS.md eliminando la línea obsoleta sobre SET XACT_ABORT ON y corrigiendo el conteo de tablas/FKs.
+Esta sesión se trabajó en dos bloques separados por un día (siguieron siendo la misma unidad lógica: terminar los SPs pendientes de Persona A después de resolver las dudas de Sebas sobre el modelo).
+
+Bloque 1 (02/06, 17:30-18:00): se recibieron 3 dudas de Sebas sobre el modelo conceptual y se analizaron contra el PDF textual (especificacion.md). Se confirmó que las 3 eran válidas. Se modificaron MovHoras (agregado Monto DECIMAL(10,2)) y DeduccionXMes (agregado idEmpleado INT NOT NULL + FK) en Tablas.sql. Se recreó PlanillaDB completa y se validó: 21 tablas, 23 FKs, trigger OK. Se actualizó AGENTS.md con los nuevos campos y conteos.
+
+Bloque 2 (04/06, 11:30-13:00): se reescribieron los 3 SPs pendientes de la persona A: sp_GetTiposMovimiento, sp_ImpersonarEmpleado y sp_RegresarAdmin. Se actualizó data/Datos.xml con los TiposEvento 15 (Impersonar empleado) y 16 (Regresar a interfaz de administrador) y los códigos de error 50012 (Empleado no existe o está inactivo) y 50013 (Usuario no es administrador). Se actualizó AGENTS.md eliminando la línea obsoleta sobre SET XACT_ABORT ON y corrigiendo el conteo de tablas/FKs.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -535,13 +460,20 @@ DECISIONES DE DISEÑO
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-sp_GetTiposMovimiento: parámetro @inAccion CHAR(1) = NULL opcional. Si es NULL retorna todos los tipos, si no filtra por Accion ('C' o 'D').
+Sobre el modelo (dudas de Sebas, bloque 1):
+- MovHoras ahora guarda Monto DECIMAL(10,2) NOT NULL — el SP de procesamiento de asistencia calculará QHoras × SalarioXHora × factor y lo guardará directamente.
+- DeduccionXMes ahora tiene idEmpleado INT NOT NULL con FK a Empleado — refleja el nombre "DeduccionesXEmpleadoxMes" del PDF.
+- Se decidió NO agregar idPlanillaSemanal a MovHoras — MovPlanilla ya funciona como bridge table y el diseño actual es válido.
 
-sp_ImpersonarEmpleado: input por ValorDocumento (consistencia con sp_GetEmpleadoById). OUTPUT @outIdEmpleado. Valida que el empleado exista y esté activo (Activo=1). Inserta en BitacoraEvento con idTipoEvento=15 (lookup por Nombre "Impersonar empleado") y Descripcion="Empleado.Id = N".
+Sobre los SPs (bloque 2):
+- sp_GetTiposMovimiento: parámetro @inAccion CHAR(1) = NULL opcional. Si es NULL retorna todos los tipos, si no filtra por Accion ('C' o 'D').
+- sp_ImpersonarEmpleado: input por ValorDocumento (consistencia con sp_GetEmpleadoById). OUTPUT @outIdEmpleado. Valida que el empleado exista y esté activo (Activo=1). Inserta en BitacoraEvento con idTipoEvento=15 (lookup por Nombre "Impersonar empleado") y Descripcion="Empleado.Id = N".
+- sp_RegresarAdmin: input @inIdUsuarioAdmin. Valida que el usuario exista (si no, 50001) y que Tipo='1' (si no, 50013). Inserta en BitacoraEvento con idTipoEvento=16 (lookup por Nombre "Regresar a interfaz de administrador").
 
-sp_RegresarAdmin: input @inIdUsuarioAdmin. Valida que el usuario exista (si no, 50001) y que Tipo='1' (si no, 50013). Inserta en BitacoraEvento con idTipoEvento=16 (lookup por Nombre "Regresar a interfaz de administrador").
-
-Códigos de error: 50001 (Username no existe) se reutiliza para "idUsuario no existe"; 50012 es código nuevo compartido entre sp_GetEmpleadoById y sp_ImpersonarEmpleado (Empleado no existe o está inactivo); 50013 es código nuevo (Usuario no es administrador).
+Sobre los códigos de error:
+- 50001 (Username no existe) se reutiliza para "idUsuario no existe".
+- 50012 es código nuevo compartido entre sp_GetEmpleadoById y sp_ImpersonarEmpleado (Empleado no existe o está inactivo).
+- 50013 es código nuevo (Usuario no es administrador).
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -549,17 +481,25 @@ PROBLEMAS DETECTADOS Y CÓMO SE RESOLVIERON
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Problema: Msg 515 al insertar Empleado sin idUsuario.
+Problema (bloque 1): MovHoras no tenía campo Monto, pero el PDF dice "crear un movimiento cuyo monto es X".
+Causa: el modelo original de Sebas solo guardaba QHoras y el monto se calculaba after-the-fact.
+Solución: se agregó Monto DECIMAL(10,2) NOT NULL a MovHoras.
+
+Problema (bloque 1): DeduccionXMes no tenía idEmpleado, pero el PDF dice "DeduccionesXEmpleadoxMes".
+Causa: el modelo original infería el empleado transitivamente vía PlanillaMensual.
+Solución: se agregó idEmpleado INT NOT NULL con FK a Empleado.
+
+Problema (bloque 2): Msg 515 al insertar Empleado sin idUsuario.
 Causa: Empleado.idUsuario es NOT NULL (porque en la vida real todo empleado tiene un Usuario asociado), pero los tests anteriores no lo seteaban.
 Solución: se seedearon Usuario id=2 (Goku) y id=3 (Willy) y se asignó idUsuario=2 al Empleado de prueba.
 
-Problema: el trigger trg_Empleado_Insert_AssignMandatoryDeductions no creó deducciones obligatorias.
+Problema (bloque 2): el trigger trg_Empleado_Insert_AssignMandatoryDeductions no creó deducciones obligatorias al insertar el Empleado de prueba.
 Causa: TipoDeduccion está vacío en la BD (no se ha ejecutado sp_CargarCatalogosXML). El trigger funciona correctamente, solo no hay deducciones que copiar.
 Solución: no afecta a sp_ImpersonarEmpleado (no necesita deducciones). Se documenta en PRÓXIMA SESIÓN.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-RESULTADOS DE TESTS
+RESULTADOS DE TESTS (bloque 2)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -584,11 +524,17 @@ AVANCE DEL CÓDIGO
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Commit 91b5596: feat(sp): reescribir sp_GetTiposMovimiento — catalogo con filtro por Accion opcional.
-Commit 125486f: feat(sp): reescribir sp_ImpersonarEmpleado — input por ValorDocumento, OUTPUT idEmpleado, valida activo.
-Commit 37e5cff: feat(sp): reescribir sp_RegresarAdmin — valida existe y Tipo='1', bitacora evento 16.
-Commit 5f156f1: feat(data): agregar TiposEvento 15 (Impersonar empleado) y 16 (Regresar a interfaz de administrador); errores 50012 y 50013.
-AGENTS.md: corregida línea 188 (quitada mención obsoleta de SET XACT_ABORT ON) y línea 218 (20 tablas → 21 tablas, 22 FKs → 23 FKs).
+Bloque 1 (esquema, commits previos — no incluidos en esta sesión):
+- Tablas.sql: agregado Monto DECIMAL(10,2) NOT NULL a MovHoras; agregado idEmpleado INT NOT NULL a DeduccionXMes con FK_DeduccionXMes_Empleado.
+- PlanillaDB recreada y validada contra localhost\SQLEXPRESS: 21 tablas, 23 FKs, trigger funciona correctamente.
+- AGENTS.md: §1.2 (21 tablas, 23 FKs), tabla MovHoras (agregado Monto), tabla DeduccionXMes (agregado idEmpleado), §3.2 (reglas de horas con Monto).
+
+Bloque 2 (SPs y datos, commits de esta sesión):
+- Commit 91b5596: feat(sp): reescribir sp_GetTiposMovimiento — catalogo con filtro por Accion opcional.
+- Commit 125486f: feat(sp): reescribir sp_ImpersonarEmpleado — input por ValorDocumento, OUTPUT idEmpleado, valida activo.
+- Commit 37e5cff: feat(sp): reescribir sp_RegresarAdmin — valida existe y Tipo='1', bitacora evento 16.
+- Commit 5f156f1: feat(data): agregar TiposEvento 15 (Impersonar empleado) y 16 (Regresar a interfaz de administrador); errores 50012 y 50013.
+- AGENTS.md: corregida línea 188 (quitada mención obsoleta de SET XACT_ABORT ON) y línea 218 (20 tablas → 21 tablas, 22 FKs → 23 FKs).
 
 Persona A (Matías) completó los 3 SPs asignados. Total: 8 SPs persona A hechos.
 
@@ -598,6 +544,9 @@ MORALEJAS / BUENAS PRÁCTICAS
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+Cuando un compañero levanta una duda sobre el modelo, comparar contra el PDF textual (no contra el SPEC.md resumido) para tener la respuesta más precisa.
+Los cambios de esquema (agregar columnas) son seguros si no hay SPs existentes que dependan de las tablas modificadas — en este caso, los SPs que usarán MovHoras y DeduccionXMes aún no se han escrito.
+Antes de recrear la base, verificar el orden de DELETEs respetando FKs para poder limpiar datos de prueba.
 Patrón para sp_ImpersonarEmpleado y sp_RegresarAdmin: input → lookup validaciones (con early RETURN) → lookup idTipoEvento (con early RETURN) → armar descripción → insert en @bitacoraData → BEGIN TRANSACTION + INSERT SELECT + COMMIT. Sin XACT_ABORT.
 Lookup por Nombre de TipoEvento es más legible y robusto que hardcodear el id (15, 16). Si en el futuro se reordenan los TiposEvento en el XML, los SPs siguen funcionando.
 Cada nuevo error code nuevo (50012, 50013) debe documentarse en data/Datos.xml para mantener la sincronía.
