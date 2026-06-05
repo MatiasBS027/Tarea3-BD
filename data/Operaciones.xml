@@ -17,9 +17,12 @@
         <AsociaEmpleadoConDeduccion ValorDocumentoIdentidad="305827920"
             TipoDeduccion="Pension Alimenticia" MontoFijo="50000.00"/>
         
-        <AsignarJornada ValorDocumentoIdentidad="110011001" Jornada="Diurno"/>
-        <AsignarJornada ValorDocumentoIdentidad="305827920" Jornada="Vespertino"/>
-        <AsignarJornada ValorDocumentoIdentidad="194739285" Jornada="Nocturno"/>
+        <AsignarJornada ValorDocumentoIdentidad="110011001" Jornada="Diurno"
+            InicioSemana="2026-05-01"/>
+        <AsignarJornada ValorDocumentoIdentidad="305827920" Jornada="Vespertino"
+            InicioSemana="2026-05-01"/>
+        <AsignarJornada ValorDocumentoIdentidad="194739285" Jornada="Nocturno"
+            InicioSemana="2026-05-01"/>
     </FechaOperacion>
 
     <FechaOperacion Fecha="2026-05-01"> <!-- Viernes y Feriado -->
@@ -83,9 +86,12 @@
             HoraSalida="2026-05-08 06:00"/>
 
         <!-- Cierre de semana 1 e inicio de semana 2 (inicia viernes 2026-05-08) -->
-        <AsignarJornada ValorDocumentoIdentidad="110011001" Jornada="Vespertino"/>
-        <AsignarJornada ValorDocumentoIdentidad="305827920" Jornada="Nocturno"/>
-        <AsignarJornada ValorDocumentoIdentidad="194739285" Jornada="Diurno"/>
+        <AsignarJornada ValorDocumentoIdentidad="110011001" Jornada="Vespertino"
+            InicioSemana="2026-05-08"/>
+        <AsignarJornada ValorDocumentoIdentidad="305827920" Jornada="Nocturno"
+            InicioSemana="2026-05-08"/>
+        <AsignarJornada ValorDocumentoIdentidad="194739285" Jornada="Diurno"
+            InicioSemana="2026-05-08"/>
 
         <AsociaEmpleadoConDeduccion ValorDocumentoIdentidad="305827920" 
             TipoDeduccion="Ahorro Vacacional" MontoFijo="25000.00"/>
@@ -151,9 +157,12 @@
             HoraSalida="2026-05-14 14:00"/>
         
         <!-- Cierre de semana 2 e inicio de semana 3 (inicia viernes 2026-05-15) -->
-        <AsignarJornada ValorDocumentoIdentidad="110011001" Jornada="Nocturno"/>
-        <AsignarJornada ValorDocumentoIdentidad="305827920" Jornada="Diurno"/>
-        <AsignarJornada ValorDocumentoIdentidad="194739285" Jornada="Vespertino"/>
+        <AsignarJornada ValorDocumentoIdentidad="110011001" Jornada="Nocturno"
+            InicioSemana="2026-05-15"/>
+        <AsignarJornada ValorDocumentoIdentidad="305827920" Jornada="Diurno"
+            InicioSemana="2026-05-15"/>
+        <AsignarJornada ValorDocumentoIdentidad="194739285" Jornada="Vespertino"
+            InicioSemana="2026-05-15"/>
 
         <AsociaEmpleadoConDeduccion ValorDocumentoIdentidad="110011001"
             TipoDeduccion="Ahorro Vacacional" MontoFijo="15000.00"/>
@@ -219,18 +228,21 @@
             HoraSalida="2026-05-20 22:00"/>
     </FechaOperacion>
 
-    <FechaOperacion Fecha="2026-05-15"> <!-- Jueves -->
-        <MarcaAsistencia ValorDocumentoIdentidad="110011001" HoraEntrada="2026-05-15 22:00"
-            HoraSalida="2026-05-16 06:00"/>
-        <MarcaAsistencia ValorDocumentoIdentidad="305827920" HoraEntrada="2026-05-15 06:00"
-            HoraSalida="2026-05-15 14:00"/>
-        <MarcaAsistencia ValorDocumentoIdentidad="194739285" HoraEntrada="2026-05-15 14:00"
-            HoraSalida="2026-05-15 22:00"/>
+    <FechaOperacion Fecha="2026-05-21"> <!-- Jueves -->
+        <MarcaAsistencia ValorDocumentoIdentidad="110011001" HoraEntrada="2026-05-21 22:00"
+            HoraSalida="2026-05-22 06:00"/>
+        <MarcaAsistencia ValorDocumentoIdentidad="305827920" HoraEntrada="2026-05-21 06:00"
+            HoraSalida="2026-05-21 14:00"/>
+        <MarcaAsistencia ValorDocumentoIdentidad="194739285" HoraEntrada="2026-05-21 14:00"
+            HoraSalida="2026-05-21 22:00"/>
 
         <!-- Cierre de semana 2 e inicio de semana 3 (inicia viernes 2026-05-15) -->
-        <AsignarJornada ValorDocumentoIdentidad="110011001" Jornada="Diurno"/>
-        <AsignarJornada ValorDocumentoIdentidad="305827920" Jornada="Vespertino"/>
-        <AsignarJornada ValorDocumentoIdentidad="194739285" Jornada="Nocturno"/>
+        <AsignarJornada ValorDocumentoIdentidad="110011001" Jornada="Diurno"
+            InicioSemana="2026-05-22"/>
+        <AsignarJornada ValorDocumentoIdentidad="305827920" Jornada="Vespertino"
+            InicioSemana="2026-05-22"/>
+        <AsignarJornada ValorDocumentoIdentidad="194739285" Jornada="Nocturno"
+            InicioSemana="2026-05-22"/>
 
         <AsociaEmpleadoConDeduccion ValorDocumentoIdentidad="305827920"
             TipoDeduccion="Pension Alimenticia" MontoFijo="30000.00"/>
