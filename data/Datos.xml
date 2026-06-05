@@ -59,6 +59,8 @@
         <TipoEvento Id="12" Nombre="Consulta con filtro de cedula"/>
         <TipoEvento Id="13" Nombre="Intento de insertar movimiento"/>
         <TipoEvento Id="14" Nombre="Insertar movimiento exitoso"/>
+        <TipoEvento Id="15" Nombre="Impersonar empleado"/>
+        <TipoEvento Id="16" Nombre="Regresar a interfaz de administrador"/>
     </TiposEvento>
 
     <!-- =====================================================
@@ -113,6 +115,8 @@
         <error Codigo="50009" Descripcion="Nombre de empleado no alfabetico"/>
         <error Codigo="50010" Descripcion="Valor de documento de identidad no alfabetico"/>
         <error Codigo="50011" Descripcion="Monto del movimiento rechazado pues si se aplicar el saldo seria negativo."/>
+        <error Codigo="50012" Descripcion="Empleado no existe o esta inactivo"/>
+        <error Codigo="50013" Descripcion="Usuario no es administrador"/>
     </Error>
 
 </Datos>
