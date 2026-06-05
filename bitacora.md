@@ -431,3 +431,84 @@ Corregir el bug de Msg 3930 en sp_Login (path de usuario no encontrado con locko
 Continuar con la Fase 1: sp_InsertarEmpleado, sp_UpdateEmpleado, sp_DeleteEmpleado (Matías).
 Implementar sp_CrearCalendario y sp_ProcesarAsistencia (compañero).
 Definir el mecanismo de generación del PDF del Comprobante.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Bitácora de Sesión
+
+Fecha: 02/06/2026
+
+Inicio: [17:30] | Fin: [18:00] || Total: [30 minutos]
+
+Presente: Matías Benavides Sandoval
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+¿QUÉ HICIMOS HOY?
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Se recibieron 3 dudas de Sebas sobre el modelo conceptual y se analizaron contra el PDF textual (especificacion.md).
+Se confirmó que las 3 dudas eran válidas: MovHoras sin Monto, MovHoras sin idPlanillaSemanal (esta última opcional), y DeduccionXMes sin idEmpleado.
+Se modificaron las tablas MovHoras (agregado Monto DECIMAL(10,2)) y DeduccionXMes (agregado idEmpleado INT NOT NULL + FK) en Tablas.sql.
+Se recreó PlanillaDB completa (VaciarDB.sql + Tablas.sql + Trigger.sql) y se validó: 21 tablas, 23 FKs, trigger OK.
+Se actualizó AGENTS.md con los nuevos campos y conteos.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PROBLEMAS DETECTADOS Y CÓMO SE RESOLVIERON
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Problema: MovHoras no tenía campo Monto, pero el PDF dice "crear un movimiento cuyo monto es X".
+Causa: el modelo original de Sebas solo guardaba QHoras y el monto se calculaba after-the-fact.
+Solución: se agregó Monto DECIMAL(10,2) NOT NULL a MovHoras. El SP de procesamiento de asistencia calculará QHoras × SalarioXHora × factor y lo guardará directamente.
+
+Problema: DeduccionXMes no tenía idEmpleado, pero el PDF dice "DeduccionesXEmpleadoxMes".
+Causa: el modelo original infería el empleado transitivamente vía PlanillaMensual.
+Solución: se agregó idEmpleado INT NOT NULL con FK a Empleado. La tabla ahora refleja el nombre del PDF y facilita las queries por empleado.
+
+Problema: MovHoras no tenía vínculo directo a PlanillaSemanal.
+Causa: el modelo original usaba un camino indirecto (MovHoras → MarcaAsistencia → Empleado → buscar PlanillaSemanal).
+Solución: se decidió NO agregar idPlanillaSemanal a MovHoras porque MovPlanilla ya funciona como bridge table y el diseño actual es válido.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+DUDAS Y DIVERGENCIAS DE CRITERIO
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Se confirmó que idPlanillaSemanal en MovHoras es opcional — el diseño actual con MovPlanilla como bridge es válido.
+El bug de Msg 3930 en sp_Login sigue pendiente (no se tocó en esta sesión).
+El modelo final ahora es: 21 tablas, 23 FKs, 1 trigger.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+AVANCE DEL CÓDIGO
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Se modificó SQL/SCRIPTS/Tablas.sql: agregado Monto DECIMAL(10,2) NOT NULL a MovHoras, agregado idEmpleado INT NOT NULL a DeduccionXMes con FK_DeduccionXMes_Empleado.
+Se recreó PlanillaDB completa y se validó contra localhost\SQLEXPRESS: 21 tablas, 23 FKs, trigger funciona correctamente.
+Se actualizó AGENTS.md: §1.2 (21 tablas, 23 FKs), tabla MovHoras (agregado Monto), tabla DeduccionXMes (agregado idEmpleado), §3.2 (reglas de horas con Monto).
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+MORALEJAS / BUENAS PRÁCTICAS
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Cuando un compañero levanta una duda sobre el modelo, comparar contra el PDF textual (no contra el SPEC.md resumido) para tener la respuesta más precisa.
+Los cambios de esquema (agregar columnas) son seguros si no hay SPs existentes que dependan de las tablas modificadas — en este caso, los SPs que usarán MovHoras y DeduccionXMes aún no se han escrito.
+Antes de recrear la base, verificar el orden de DELETEs respetando FKs para poder limpiar datos de prueba.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PRÓXIMA SESIÓN: ¿QUÉ SIGUE?
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Corregir el bug de Msg 3930 en sp_Login (path de usuario no encontrado con lockout).
+Continuar con la Fase 1: sp_InsertarEmpleado, sp_UpdateEmpleado, sp_DeleteEmpleado (Matías).
+Implementar sp_CrearCalendario y sp_ProcesarAsistencia (compañero) — ya con los campos Monto e idEmpleado disponibles.
+Definir el mecanismo de generación del PDF del Comprobante.

@@ -16,20 +16,20 @@
 - Convenciones Tarea2-BD para `BitacoraEvento`: `IpPostIn` (no `ip`), `PostTime` (no `FechaHora`).
 - El backend de Tarea2-BD (`src/controllers/*.ts`) NO es de este proyecto — no basarse en él.
 
-### 1.2 Modelo final (20 tablas, 22 FKs, 1 trigger)
+### 1.2 Modelo final (21 tablas, 23 FKs, 1 trigger)
 
 | Tabla | Columnas | Notas |
 |---|---|---|
 | `BitacoraEvento` | id, idTipoEvento, idUsuario, **PostTime**, **IpPostIn**, Descripcion | R07: User.Id, IP, estampa de tiempo. NVARCHAR(512) en Descripcion. |
 | `DBError` | id, UserName, Number, State, Severity, Line, [Procedure], Message, DateTime | Bitácora de errores no controlados. NVARCHAR en UserName/Procedure/Message. |
 | `DeduccionEmpleado` | id, idEmpleado, idTipoDeduccion, **MontoFijo**, FechaInicio, **FechaFin** | Una fila por (empleado, tipo de deducción). MontoFijo carga el `Valor` del TipoDeduccion (sea % o monto); el SP decide cómo aplicarlo. FechaFin='9999-12-31' = vigente. |
-| `DeduccionXMes` | id, idPlanillaMensual, idTipoDeduccion, MontoTotal | Resumen mensual de deducciones (PDF p.9, §4.4.6). |
+| `DeduccionXMes` | id, idPlanillaMensual, **idEmpleado**, idTipoDeduccion, MontoTotal | Resumen mensual de deducciones por empleado (PDF §6: "DeduccionesXEmpleadoxMes"). idEmpleado agregado para evitar join transitivo a PlanillaMensual. |
 | `Empleado` | id, idPuesto, idUsuario, ValorDocumento, Nombre, CuentaBancaria, FechaContratacion, **Activo** | Sin `Departamento`/`TipoDocIdentidad` (no aportan a planilla, ver §1.3). |
 | `Feriado` | id, Nombre, Fecha | Tabla obligatoria: el SP de cierre verifica `Fecha` contra `MarcaAsistencia.Fecha` para extras dobles (PDF p.1, p.8 §4.4.5). |
 | `HorarioJornada` | id, idEmpleado, idSemana, idTipoJornada | Asignación de jornada por semana. |
 | `MarcaAsistencia` | id, idEmpleado, Fecha, HoraEntrada, HoraSalida | **Sin** FK a HorarioJornada ni Semana (ver §1.3.6). Jornada nocturna puede cruzar medianoche. |
 | `Mes` | id, FechaInicio, FechaFin, NumJueves TINYINT | Encabezado del ciclo mensual. NumJueves precalculado por el SP. |
-| `MovHoras` | id, QHoras INT, idAsistencia, idTipoMov | **Tabla nueva**. PDF §4.4.5: cada asistencia → hasta 3 movimientos (1 ord, 1 ext-normal, 1 ext-doble). QHoras siempre entero (PDF: "Solo se pagan horas completas, si el empleado trabajo 7.5 horas se pagan 7 horas"). |
+| `MovHoras` | id, QHoras INT, **Monto DECIMAL(10,2)**, idAsistencia, idTipoMov | **Tabla nueva**. PDF §4.4.5: cada asistencia → hasta 3 movimientos (1 ord, 1 ext-normal, 1 ext-doble). QHoras siempre entero (PDF: "Solo se pagan horas completas, si el empleado trabajo 7.5 horas se pagan 7 horas"). Monto = QHoras × SalarioXHora × factor (1.0/1.5/2.0). |
 | `MovPlanilla` | id, idPlanillaSemanal, idTipoMovimiento, Monto, NuevoSaldo | Líneas monetarias de la planilla. `NuevoSaldo` = saldo acumulado después de aplicar el movimiento. |
 | `PlanillaMensual` | id, idEmpleado, idMes, SalarioBruto, TotalDeducciones, SalarioNeto | Suma de las semanales del mes (puede no ser mes natural). |
 | `PlanillaSemanal` | id, idEmpleado, idSemana, SalarioBruto, TotalDeducciones, SalarioNeto, **Comprobante** VARBINARY(MAX) NULL | **Sin** columnas HorasOrd/ExtraNormal/ExtraDoble (denormalización, ver §1.3.5). Comprobante = PDF/image del recibo. |
@@ -42,7 +42,7 @@
 | `Usuario` | id, Username, PasswordHash, **Tipo** VARCHAR(2) | `Tipo='1'` admin, `Tipo='2'` empleado (PDF p.6, comentario XML). |
 | **Trigger** | `trg_Empleado_Insert_AssignMandatoryDeductions` | `AFTER INSERT ON Empleado`, cross-join con `TipoDeduccion WHERE EsObligatoria=1`, inserta `DeduccionEmpleado` con `MontoFijo=td.Valor`, `FechaInicio=i.FechaContratacion`, `FechaFin='9999-12-31'`. |
 
-**Total: 20 tablas, 22 FKs, 1 trigger.**
+**Total: 21 tablas, 23 FKs, 1 trigger.**
 
 ### 1.3 Las 8 correcciones al modelo de Sebas (con cita al PDF)
 
@@ -133,9 +133,9 @@ GO
 - Deducciones fijas: `Valor / NumJueves` — el SP ve `EsPorcentual=0`.
 
 ### 3.2 Horas extra (PDF p.8 §4.4.5)
-- **Ordinarias**: horas trabajadas dentro de la jornada × `SalarioXHora` → fila en `MovHoras` con `idTipoMov = <ordinarias>` + fila en `MovPlanilla` (crédito).
-- **Extras normales**: horas trabajadas **después** del fin de jornada, no domingo/feriado × `SalarioXHora × 1.5` → fila en `MovHoras` con `idTipoMov = <extras normales>` + fila en `MovPlanilla`.
-- **Extras dobles**: horas extras en domingo/feriado × `SalarioXHora × 2.0` → fila en `MovHoras` con `idTipoMov = <extras dobles>` + fila en `MovPlanilla`.
+- **Ordinarias**: horas trabajadas dentro de la jornada × `SalarioXHora` → fila en `MovHoras` (con `Monto`) + fila en `MovPlanilla` (crédito).
+- **Extras normales**: horas trabajadas **después** del fin de jornada, no domingo/feriado × `SalarioXHora × 1.5` → fila en `MovHoras` (con `Monto`) + fila en `MovPlanilla`.
+- **Extras dobles**: horas extras en domingo/feriado × `SalarioXHora × 2.0` → fila en `MovHoras` (con `Monto`) + fila en `MovPlanilla`.
 - Solo horas **completas** (7.5 → 7). QHoras = INT en `MovHoras`.
 - **Una asistencia puede generar hasta 3 movimientos** distintos (ej: salida 3am del día siguiente siendo feriado).
 
