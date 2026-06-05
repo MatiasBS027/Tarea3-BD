@@ -512,3 +512,103 @@ Corregir el bug de Msg 3930 en sp_Login (path de usuario no encontrado con locko
 Continuar con la Fase 1: sp_InsertarEmpleado, sp_UpdateEmpleado, sp_DeleteEmpleado (Matías).
 Implementar sp_CrearCalendario y sp_ProcesarAsistencia (compañero) — ya con los campos Monto e idEmpleado disponibles.
 Definir el mecanismo de generación del PDF del Comprobante.
+
+━━━━━
+
+Fecha: 04/06/2026
+
+Inicio: [11:30] | Fin: [13:00] || Total: [1.5 horas]
+
+Presente: Matías Benavides Sandoval
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+¿QUÉ HICIMOS HOY?
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Se reescribieron los 3 SPs pendientes de la persona A: sp_GetTiposMovimiento, sp_ImpersonarEmpleado y sp_RegresarAdmin. Se actualizó data/Datos.xml con los TiposEvento 15 (Impersonar empleado) y 16 (Regresar a interfaz de administrador) y los códigos de error 50012 (Empleado no existe o está inactivo) y 50013 (Usuario no es administrador). Se actualizó AGENTS.md eliminando la línea obsoleta sobre SET XACT_ABORT ON y corrigiendo el conteo de tablas/FKs.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+DECISIONES DE DISEÑO
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+sp_GetTiposMovimiento: parámetro @inAccion CHAR(1) = NULL opcional. Si es NULL retorna todos los tipos, si no filtra por Accion ('C' o 'D').
+
+sp_ImpersonarEmpleado: input por ValorDocumento (consistencia con sp_GetEmpleadoById). OUTPUT @outIdEmpleado. Valida que el empleado exista y esté activo (Activo=1). Inserta en BitacoraEvento con idTipoEvento=15 (lookup por Nombre "Impersonar empleado") y Descripcion="Empleado.Id = N".
+
+sp_RegresarAdmin: input @inIdUsuarioAdmin. Valida que el usuario exista (si no, 50001) y que Tipo='1' (si no, 50013). Inserta en BitacoraEvento con idTipoEvento=16 (lookup por Nombre "Regresar a interfaz de administrador").
+
+Códigos de error: 50001 (Username no existe) se reutiliza para "idUsuario no existe"; 50012 es código nuevo compartido entre sp_GetEmpleadoById y sp_ImpersonarEmpleado (Empleado no existe o está inactivo); 50013 es código nuevo (Usuario no es administrador).
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PROBLEMAS DETECTADOS Y CÓMO SE RESOLVIERON
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Problema: Msg 515 al insertar Empleado sin idUsuario.
+Causa: Empleado.idUsuario es NOT NULL (porque en la vida real todo empleado tiene un Usuario asociado), pero los tests anteriores no lo seteaban.
+Solución: se seedearon Usuario id=2 (Goku) y id=3 (Willy) y se asignó idUsuario=2 al Empleado de prueba.
+
+Problema: el trigger trg_Empleado_Insert_AssignMandatoryDeductions no creó deducciones obligatorias.
+Causa: TipoDeduccion está vacío en la BD (no se ha ejecutado sp_CargarCatalogosXML). El trigger funciona correctamente, solo no hay deducciones que copiar.
+Solución: no afecta a sp_ImpersonarEmpleado (no necesita deducciones). Se documenta en PRÓXIMA SESIÓN.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+RESULTADOS DE TESTS
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+sp_GetTiposMovimiento: 3/3 pass.
+- Sin filtro → 8 tipos (3 crédito + 5 débito).
+- @inAccion='C' → 3 tipos crédito.
+- @inAccion='D' → 5 tipos débito.
+
+sp_ImpersonarEmpleado: 3/3 pass.
+- @inValorDocumento='1-1111-1111' (existe, activo) → idEmpleado=2, ResultCode=0, BitacoraEvento id=9 con idTipoEvento=15.
+- @inValorDocumento='9-9999-9999' (no existe) → idEmpleado=NULL, ResultCode=50012.
+- @inValorDocumento='1-1111-1111' (Activo=0) → idEmpleado=NULL, ResultCode=50012.
+
+sp_RegresarAdmin: 3/3 pass.
+- @inIdUsuarioAdmin=1 (admin) → ResultCode=0, BitacoraEvento id=11 con idTipoEvento=16.
+- @inIdUsuarioAdmin=3 (Tipo='2', empleado) → ResultCode=50013.
+- @inIdUsuarioAdmin=99 (no existe) → ResultCode=50001.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+AVANCE DEL CÓDIGO
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Commit 91b5596: feat(sp): reescribir sp_GetTiposMovimiento — catalogo con filtro por Accion opcional.
+Commit 125486f: feat(sp): reescribir sp_ImpersonarEmpleado — input por ValorDocumento, OUTPUT idEmpleado, valida activo.
+Commit 37e5cff: feat(sp): reescribir sp_RegresarAdmin — valida existe y Tipo='1', bitacora evento 16.
+Commit 5f156f1: feat(data): agregar TiposEvento 15 (Impersonar empleado) y 16 (Regresar a interfaz de administrador); errores 50012 y 50013.
+AGENTS.md: corregida línea 188 (quitada mención obsoleta de SET XACT_ABORT ON) y línea 218 (20 tablas → 21 tablas, 22 FKs → 23 FKs).
+
+Persona A (Matías) completó los 3 SPs asignados. Total: 8 SPs persona A hechos.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+MORALEJAS / BUENAS PRÁCTICAS
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Patrón para sp_ImpersonarEmpleado y sp_RegresarAdmin: input → lookup validaciones (con early RETURN) → lookup idTipoEvento (con early RETURN) → armar descripción → insert en @bitacoraData → BEGIN TRANSACTION + INSERT SELECT + COMMIT. Sin XACT_ABORT.
+Lookup por Nombre de TipoEvento es más legible y robusto que hardcodear el id (15, 16). Si en el futuro se reordenan los TiposEvento en el XML, los SPs siguen funcionando.
+Cada nuevo error code nuevo (50012, 50013) debe documentarse en data/Datos.xml para mantener la sincronía.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PRÓXIMA SESIÓN: ¿QUÉ SIGUE?
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Ejecutar sp_CargarCatalogosXML con el XML actualizado para popular TipoDeduccion, Puesto, Feriado, TipoJornada, etc. (orden: catalogos primero, usuarios al final).
+Implementar sp_InsertarEmpleado (Persona A) — patrón completo: insert con validaciones de unicidad (50004, 50005), trigger dispara deducciones obligatorias, bitacora (idTipoEvento 5/6).
+Implementar sp_UpdateEmpleado y sp_DeleteEmpleado (Persona A) — usar soft delete con Activo=0 o hard delete con DELETE.
+Empezar a documentar la incertidumbre sobre MarcaAsistencia sin HorarioJornada (riesgo §7 AGENTS.md).

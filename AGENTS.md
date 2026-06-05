@@ -185,7 +185,7 @@ La conexión real está en `src/db/connection.ts` (asume base ya creada y SPs ya
 12. `sp_GetPlanillaSemanal` / `sp_GetPlanillaMensual` (R04/R05).
 13. `sp_ImpersonarEmpleado` / `sp_RegresarAdmin` (R03/R06).
 
-Todos con `SET XACT_ABORT ON; SET NOCOUNT ON;`, `BEGIN TRY / BEGIN CATCH`, y al final `INSERT INTO BitacoraEvento ...`.
+Todos con `SET NOCOUNT ON;` (NO usar `SET XACT_ABORT ON` — combinado con transacciones explícitas produce Msg 3930), `BEGIN TRY / BEGIN CATCH` con `IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION` en el CATCH antes de insertar en DBError, y `INSERT INTO BitacoraEvento ...` para SPs que escriben. SPs de solo lectura (catálogos, GETs) no abren transacción ni escriben bitácora.
 
 ---
 
@@ -215,7 +215,7 @@ Todos con `SET XACT_ABORT ON; SET NOCOUNT ON;`, `BEGIN TRY / BEGIN CATCH`, y al 
 ## 8. Anexo: archivos del proyecto SQL
 
 - `SQL/SCRIPTS/VaciarDB.sql` — drop + create de la base vacía (en `master`).
-- `SQL/SCRIPTS/Tablas.sql` — 20 tablas + 22 FKs, en formato SSMS, `USE [PlanillaDB]`. Asume base preexistente.
+- `SQL/SCRIPTS/Tablas.sql` — 21 tablas + 23 FKs, en formato SSMS, `USE [PlanillaDB]`. Asume base preexistente.
 - `SQL/SCRIPTS/Trigger.sql` — `trg_Empleado_Insert_AssignMandatoryDeductions`.
 - `SQL/SCRIPTS/CargarDatosXML.sql` — scaffold de `sp_CargarCatalogosXML` (pendiente del XML final).
 - `ModeloSebas*.jpeg` — diagrama ER del compañero, referencia visual. No se commitea (evidencia del compañero).
