@@ -561,3 +561,125 @@ Ejecutar sp_CargarCatalogosXML con el XML actualizado para popular TipoDeduccion
 Implementar sp_InsertarEmpleado (Persona A) — patrón completo: insert con validaciones de unicidad (50004, 50005), trigger dispara deducciones obligatorias, bitacora (idTipoEvento 5/6).
 Implementar sp_UpdateEmpleado y sp_DeleteEmpleado (Persona A) — usar soft delete con Activo=0 o hard delete con DELETE.
 Empezar a documentar la incertidumbre sobre MarcaAsistencia sin HorarioJornada (riesgo §7 AGENTS.md).
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Bitácora de Sesión
+
+Fecha: 05/06/2026
+
+Inicio: [20:00] | Fin: [22:00] || Total: [2 horas]
+
+Presente: Matías Benavides Sandoval
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+¿QUÉ HICIMOS HOY?
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Se cerró la única inconsistencia pendiente en el catálogo de eventos (data/Datos.xml) detectada al revisar R07 del PDF contra los eventos ya listados, agregando los 7 tipos que faltaban para alinearse con la tabla de eventos del enunciado. El cambio fue puramente aditivo (sin modificar nombres ni ids existentes), por lo que ningún SP que resuelve TipoEvento por Nombre se vio afectado.
+
+Luego se completó R03 (Impersonar empleado) y R06 (Regresar a interfaz de administrador) end-to-end. Los SPs ya existían (implementados en la sesión 02-04/06), pero faltaba el cableado del backend (controller + route) y, sobre todo, la UI para invocarlos. Se creó un nuevo controller y route de Express, se registró bajo /api/auth, se agregó el botón "Impersonar" en cada fila de la tabla de empleados (empleados.js), y se creó la página placeholder empleado.html con su handler para el botón "Regresar a admin". Sebastián (Persona B) podrá ahora conectar sus SPs de planilla (R04/R05) al placeholder que ya muestra el nombre del empleado impersonado y tiene el botón de regreso funcional.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+DECISIONES DE DISEÑO
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Sobre el catálogo de eventos (R07):
+- Se agregaron Ids 17-23 a data/Datos.xml sin tocar los Ids 1-16 ya existentes: 17=Listar empleados, 18=Asociar deduccion, 19=Desasociar deduccion, 20=Consultar planilla semanal, 21=Consultar planilla mensual, 22=Ingreso de marcas de asistencia, 23=Ingreso nuevas jornadas. Nombres sin tilde (consistente con el estilo del archivo, ej. "Insercion" sin tilde).
+- Eventos partidos exitoso/no-exitoso (Insercion, Update, Borrado) se MANTIENEN tal cual. Es decisión de proyecto, no contradice la spec (que es enunciativa, no taxativa).
+- Eventos 13/14 (Intento/éxito de insertar movimiento) se MANTIENEN. Existen por la pantalla insertarMovimiento.html que ya está implementada.
+
+Sobre R03/R06 backend:
+- Las dos rutas nuevas se montan en /api/auth (no en /api/empleados) porque la sesión activa viaja en el header x-username, igual que en /api/auth/login y /api/auth/logout.
+- impersonarController resuelve el id del usuario admin desde x-username (mismo helper resolveUsuarioId que usa empleadoController.ts) y lo pasa a sp_ImpersonarEmpleado / sp_RegresarAdmin.
+- El SP sp_ImpersonarEmpleado tiene OUTPUT @outIdEmpleado; el controller lo captura con .output('outIdEmpleado', sql.Int) y lo devuelve al frontend en la respuesta.
+- Para outResultCode != 0: 50012 → HTTP 404, 50013 → HTTP 403, resto → HTTP 400. Errores de servidor → 500.
+
+Sobre R03/R06 frontend:
+- localStorage guarda 3 keys nuevas durante la impersonación: impersonatedIdEmpleado, impersonatedDocumento, impersonatedNombre. Se limpian al regresar a admin.
+- Se pasa el documento y el idEmpleado también por query string (?idEmpleado=...&documento=...) por si el usuario recarga la página (sobrevive a un F5).
+- El nombre del empleado se resuelve del DOM de la tabla (nombreDeEmpleadoActual) para no tener que hacer un GET extra al backend.
+- empleado.html es placeholder: el sidebar muestra el nombre del empleado impersonado y un botón "Regresar a admin" prominente. El cuerpo es un status info indicando "Pendiente de implementación por Sebastián" — Sebastián reemplaza esa sección con la UI de R04/R05 sin tocar el header/sidebar.
+
+Sobre CSS:
+- Se agregó la clase .action-impersonar (color morado) para distinguir visualmente el botón de impersonación de los existentes (consultar/editar/movimientos/borrar).
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PROBLEMAS DETECTADOS Y CÓMO SE RESOLVIERON
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Problema: faltaban TiposEvento en data/Datos.xml para cubrir R07 del PDF.
+Causa: la spec R07 lista 15 eventos (Login, Logout, Listar empleados, Listar con filtro, Insertar empleado, Eliminar empleado, Asociar deducción, Desasociar deducción, Consultar planilla semanal, Consultar planilla mensual, Editar empleado, Impersonar empleado, Regresar a admin, Ingreso de marcas de asistencia, Ingreso nuevas jornadas), pero el XML solo tenía 16 que cubrían parcialmente.
+Solución: se agregaron Ids 17-23. Cambio aditivo, sin tocar Ids 1-16 (los SPs existentes que resuelven por Nombre siguen funcionando idéntico).
+
+Problema: no había forma de probar R03/R06 desde la UI, solo a nivel SP.
+Causa: los SPs existían pero no había controller/route/botón que los invocaran.
+Solución: se implementó el cableado completo (controller + route + botón admin + página empleado con botón de regreso).
+
+Problema: el placeholder de la vista de empleado (empleado.html) no existía.
+Causa: Sebastián aún no implementa R04/R05, pero el botón R06 necesita una página donde vivir.
+Solución: se creó empleado.html como placeholder mínimo (header con nombre del empleado, botón "Regresar a admin" prominente, cuerpo pendiente). Sebastián reemplaza solo el cuerpo, sin tocar el header.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+AVANCE DEL CÓDIGO
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Catálogo:
+- data/Datos.xml: 7 nuevos <TipoEvento> (Ids 17-23). XML validado con [xml]::Load, 23 nodos.
+
+Backend (R03 + R06 end-to-end):
+- src/controllers/impersonarController.ts (nuevo, 134 líneas): funciones impersonarEmpleado y regresarAdmin. Resuelven idUsuarioAdmin desde x-username, llaman a los SPs, manejan outResultCode y los HTTP codes correspondientes.
+- src/routes/impersonar.ts (nuevo, 38 líneas): POST /api/auth/impersonar y POST /api/auth/regresar-admin.
+- src/index.ts: import + app.use('/api/auth', impersonarRouter).
+
+Frontend admin (R03):
+- public/js/empleados.js: nuevo botón "Impersonar" en cada fila (clase action-impersonar, color morado). Nuevo case en bindEvents para accion='impersonar'. Nuevo método impersonarEmpleado() que llama al nuevo endpoint, guarda contexto en localStorage y redirige a empleado.html. Nuevo helper nombreDeEmpleadoActual() para resolver el nombre desde el DOM sin GET extra.
+
+Frontend empleado (R06):
+- public/empleado.html (nuevo): sidebar con kicker "Impersonando", nombre del empleado, documento, botón "Regresar a admin". Main con placeholder "Planilla semanal y mensual — Pendiente de implementación por Sebastián".
+- public/js/empleado.js (nuevo): clase EmpleadoPage con bindEvents, pintarContexto (lee de localStorage o query params), regresarAdmin() que llama al endpoint y limpia localStorage.
+
+CSS:
+- public/css/style.css: agregada .page-content .action-impersonar (rgba morado).
+
+Validación:
+- `npx tsc --noEmit` sobre tsconfig.json y tsconfigFronted.json: 0 errores reales (los warnings son por dependencias no instaladas — sin node_modules, esperado).
+
+Archivos modificados (4) y creados (4):
+- Modificados: data/Datos.xml, src/index.ts, public/js/empleados.js, public/css/style.css.
+- Nuevos: src/controllers/impersonarController.ts, src/routes/impersonar.ts, public/empleado.html, public/js/empleado.js.
+
+Persona A (Matías) completó R03 y R06 end-to-end. R07 (bitácora) está implementado a nivel de SPs (todos los eventos quedan registrados) y la trazabilidad funciona — falta el visor de bitácora (Opción 2 de la sesión, no priorizada hoy).
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+MORALEJAS / BUENAS PRÁCTICAS
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Comparar el catálogo de datos contra el PDF (no contra el SPEC.md resumido) periódicamente — las tablas del enunciado son la fuente de verdad y pueden omitirse del resumen.
+Los SPs que resuelven TiposEvento por Nombre son robustos a reordenamientos de Ids en el XML. Mantener ese patrón.
+Para R03/R06, montar las rutas bajo /api/auth (no /api/empleados) porque la sesión activa viaja en x-username, igual que login/logout. Consistencia de namespace.
+Crear placeholders mínimos (header + botón principal) para vistas que otro compañero implementará después, en vez de bloquear la integración. Sebastián puede ahora conectar sus SPs sin tener que pelearse con la navegación.
+En frontend, duplicar info en localStorage + query params (sobrevive a F5) y limpiar las keys de impersonación al regresar a admin.
+Patrón de outResultCode → HTTP status: códigos de dominio (50012 no existe, 50013 no es admin) → 404/403, resto → 400, server errors → 500. El controller es quien decide el status, no el SP.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PRÓXIMA SESIÓN: ¿QUÉ SIGUE?
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Opción 2: implementar el visor de bitácora (R07 admin) — nueva página bitacora.html + sp_GetBitacora + ruta GET. Pendiente.
+Levantar SQL Server local + pnpm install + pnpm run dev para validar end-to-end R03/R06 (clic → SP → bitácora → redirige).
+Ejecutar sp_CargarCatalogosXML con el XML actualizado (Ids 17-23) para que los nuevos eventos estén en la BD antes de que Sebastián los use.
+Revisión cruzada: Matías revisa los SPs de Sebastián cuando estén listos.
+Documentar el comportamiento esperado para MarcaAsistencia sin HorarioJornada (riesgo §7 AGENTS.md).
