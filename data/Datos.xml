@@ -43,10 +43,6 @@
 
     <!-- =====================================================
         TIPOS DE EVENTO (Id del XML, NO identity)
-        1-16: originales. 17-23: agregados segun R07 del PDF
-        (Listar empleados, Asociar/Desasociar deduccion,
-        Consultar planilla semanal/mensual, Ingreso de marcas
-        de asistencia, Ingreso nuevas jornadas).
     ====================================================== -->
     <TiposEvento>
         <TipoEvento Id="1" Nombre="Login Exitoso"/>
