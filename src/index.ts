@@ -3,6 +3,7 @@ import path from 'path';
 import { getPool } from './db/connection';
 import empleadosRouter from './routes/empleados';
 import authRouter from './routes/auth';
+import impersonarRouter from './routes/impersonar';
 import movimientosRouter from './routes/movimientos';
 import puestosRouter from './routes/puestos';
 import tiposMovimientoRouter from './routes/tiposMovimiento';
@@ -18,6 +19,7 @@ app.use(express.static(path.join(__dirname, '../public')));
 
 // Rutas API
 app.use('/api/auth', authRouter);
+app.use('/api/auth', impersonarRouter);
 app.use('/api/empleados', empleadosRouter);
 app.use('/api/movimientos', movimientosRouter);
 app.use('/api/puestos', puestosRouter);

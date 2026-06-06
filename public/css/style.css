@@ -653,6 +653,11 @@ body.movimientos-page {
     color: #ffb0b0;
 }
 
+.page-content .action-impersonar {
+    background: rgba(168, 85, 247, 0.18);
+    color: #d8b4fe;
+}
+
 .page-content .delete-modal {
     background: rgba(0, 0, 0, 0.65);
 }

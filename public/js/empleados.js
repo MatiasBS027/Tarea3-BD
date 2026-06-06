@@ -94,6 +94,9 @@ class EmpleadosPage {
             if (accion === 'borrar') {
                 this.abrirModalBorrado(documento);
             }
+            if (accion === 'impersonar') {
+                void this.impersonarEmpleado(documento);
+            }
         });
         // Insertar empleado: abrir modal
         if (this.btnInsertar) {
@@ -314,6 +317,9 @@ class EmpleadosPage {
                     <button type="button" class="action-button action-view" data-accion="movimientos" data-documento="${empleado.ValorDocumentoIdentidad}">
                         Movimientos
                     </button>
+                    <button type="button" class="action-button action-impersonar" data-accion="impersonar" data-documento="${empleado.ValorDocumentoIdentidad}">
+                        Impersonar
+                    </button>
                     <button type="button" class="action-button action-delete" data-accion="borrar" data-documento="${empleado.ValorDocumentoIdentidad}">
                         Borrar
                     </button>
@@ -332,6 +338,51 @@ class EmpleadosPage {
     abrirMovimientos(valorDocumentoIdentidad) {
         localStorage.setItem('ultimoDocumentoEmpleado', valorDocumentoIdentidad);
         window.location.href = `/movimientos.html?documento=${encodeURIComponent(valorDocumentoIdentidad)}`;
+    }
+    async impersonarEmpleado(valorDocumentoIdentidad) {
+        const username = localStorage.getItem('username') || 'UsuarioScripts';
+        this.setEstado(`Impersonando a ${valorDocumentoIdentidad}...`, 'info');
+        try {
+            const response = await fetch('/api/auth/impersonar', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-username': username,
+                },
+                body: JSON.stringify({ valorDocumentoIdentidad }),
+            });
+            const payload = await response.json();
+            if (!response.ok || !payload.success) {
+                this.setEstado(payload.message || 'No se pudo iniciar la impersonación.', 'error');
+                return;
+            }
+            const idEmpleado = Number(payload.idEmpleado ?? 0);
+            if (!idEmpleado) {
+                this.setEstado('La respuesta del servidor no incluyó el id del empleado.', 'error');
+                return;
+            }
+            localStorage.setItem('impersonatedIdEmpleado', String(idEmpleado));
+            localStorage.setItem('impersonatedDocumento', valorDocumentoIdentidad);
+            localStorage.setItem('impersonatedNombre', this.nombreDeEmpleadoActual(valorDocumentoIdentidad));
+            window.location.href = `/empleado.html?idEmpleado=${idEmpleado}&documento=${encodeURIComponent(valorDocumentoIdentidad)}`;
+        }
+        catch (error) {
+            console.error('Error impersonando empleado:', error);
+            this.setEstado('Error de conexión con el servidor.', 'error');
+        }
+    }
+    nombreDeEmpleadoActual(documento) {
+        if (this.detalleActual && this.detalleActual.ValorDocumentoIdentidad === documento) {
+            return this.detalleActual.Nombre || '';
+        }
+        const filas = this.empleadosBody.querySelectorAll('tr');
+        for (const fila of filas) {
+            const docCell = fila.children?.[1]?.textContent?.trim();
+            if (docCell === documento) {
+                return fila.children?.[0]?.textContent?.trim() || '';
+            }
+        }
+        return '';
     }
     irAMovimientosSeleccionado() {
         const documento = this.documentoActual || localStorage.getItem('ultimoDocumentoEmpleado') || '';
