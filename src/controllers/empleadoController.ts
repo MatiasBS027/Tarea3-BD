@@ -68,7 +68,7 @@ export async function getEmpleados(req: Request, res: Response): Promise<void> {
 
         const result = await pool
             .request()
-            .input('inFiltro', sql.VarChar(128), filtro)
+            .input('inNombre', sql.VarChar(128), filtro)
             .input('inUsername', sql.VarChar(128), usernameForLog)
             .input('inIpPostIn', sql.VarChar(64), ipPostIn)
             .input('inPostTime', sql.DateTime, postTime)
@@ -384,6 +384,122 @@ export async function deleteEmpleado(req: Request, res: Response): Promise<void>
         });
     } catch (error) {
         console.error('Error en deleteEmpleado:', error);
+        res.status(500).json({
+            success: false,
+            outResultCode: 50008,
+            message: 'Error interno del servidor'
+        });
+    }
+}
+
+// POST /api/empleados/impersonar
+// Invoca sp_ImpersonarEmpleado para que un admin acceda como empleado.
+export async function impersonarEmpleado(req: Request, res: Response): Promise<void> {
+    try {
+        const { valorDocumento } = req.body;
+
+        if (!valorDocumento) {
+            res.status(400).json({
+                success: false,
+                outResultCode: 50012,
+                message: await getErrorMessage(50012)
+            });
+            return;
+        }
+
+        const username = String(req.headers['x-username'] ?? '');
+        const pool = await getPool();
+        const idUsuarioAdmin = await resolveUsuarioId(pool, username);
+
+        if (!idUsuarioAdmin) {
+            res.status(400).json({
+                success: false,
+                outResultCode: 50001,
+                message: await getErrorMessage(50001)
+            });
+            return;
+        }
+
+        const result = await pool
+            .request()
+            .input('inValorDocumento', sql.VarChar(32), String(valorDocumento))
+            .input('inIdUsuarioAdmin', sql.Int, idUsuarioAdmin)
+            .input('inIpPostIn', sql.VarChar(64), req.ip ?? '')
+            .input('inPostTime', sql.DateTime, new Date())
+            .output('outIdEmpleado', sql.Int)
+            .output('outResultCode', sql.Int)
+            .execute('sp_ImpersonarEmpleado');
+
+        const outResultCode: number = result.output.outResultCode;
+        const outIdEmpleado: number | null = result.output.outIdEmpleado ?? null;
+
+        if (outResultCode !== 0) {
+            res.status(outResultCode === 50012 ? 404 : 400).json({
+                success: false,
+                outResultCode,
+                message: await getErrorMessage(outResultCode)
+            });
+            return;
+        }
+
+        res.status(200).json({
+            success: true,
+            outResultCode,
+            data: { idEmpleado: outIdEmpleado }
+        });
+    } catch (error) {
+        console.error('Error en impersonarEmpleado:', error);
+        res.status(500).json({
+            success: false,
+            outResultCode: 50008,
+            message: 'Error interno del servidor'
+        });
+    }
+}
+
+// POST /api/empleados/regresar-admin
+// Invoca sp_RegresarAdmin para volver a la interfaz de administrador.
+export async function regresarAdmin(req: Request, res: Response): Promise<void> {
+    try {
+        const username = String(req.headers['x-username'] ?? '');
+        const pool = await getPool();
+        const idUsuarioAdmin = await resolveUsuarioId(pool, username);
+
+        if (!idUsuarioAdmin) {
+            res.status(400).json({
+                success: false,
+                outResultCode: 50001,
+                message: await getErrorMessage(50001)
+            });
+            return;
+        }
+
+        const result = await pool
+            .request()
+            .input('inIdUsuarioAdmin', sql.Int, idUsuarioAdmin)
+            .input('inIpPostIn', sql.VarChar(64), req.ip ?? '')
+            .input('inPostTime', sql.DateTime, new Date())
+            .output('outResultCode', sql.Int)
+            .execute('sp_RegresarAdmin');
+
+        const outResultCode: number = result.output.outResultCode;
+
+        if (outResultCode !== 0) {
+            res.status(outResultCode === 50013 ? 403 : 400).json({
+                success: false,
+                outResultCode,
+                message: await getErrorMessage(outResultCode)
+            });
+            return;
+        }
+
+        res.status(200).json({
+            success: true,
+            outResultCode,
+            message: 'Regreso a interfaz de administrador'
+        });
+    } catch (error) {
+        console.error('Error en regresarAdmin:', error);
         res.status(500).json({
             success: false,
             outResultCode: 50008,
