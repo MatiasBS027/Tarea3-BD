@@ -62,7 +62,6 @@ class EmpleadosPage {
     private insertNombreInput: HTMLInputElement;
     private insertPuestoSelect: HTMLSelectElement;
     private cancelInsertBtn: HTMLButtonElement;
-    private btnSidebarMovimientos: HTMLButtonElement;
     private logoutBtn: HTMLButtonElement;
     private detalleActual: EmpleadoDetalle | null = null;
     private documentoActual: string | null = null;
@@ -99,7 +98,6 @@ class EmpleadosPage {
         this.insertNombreInput = document.getElementById('insertNombre') as HTMLInputElement;
         this.insertPuestoSelect = document.getElementById('insertPuesto') as HTMLSelectElement;
         this.cancelInsertBtn = document.getElementById('cancelInsertBtn') as HTMLButtonElement;
-        this.btnSidebarMovimientos = document.getElementById('btnSidebarMovimientos') as HTMLButtonElement;
         this.logoutBtn = document.getElementById('logoutBtn') as HTMLButtonElement;
 
         this.bindEvents();
@@ -153,8 +151,8 @@ class EmpleadosPage {
                 return;
             }
 
-            if (accion === 'movimientos') {
-                this.abrirMovimientos(documento);
+            if (accion === 'impersonar') {
+                void this.impersonarEmpleado(documento);
                 return;
             }
 
@@ -181,12 +179,6 @@ class EmpleadosPage {
         if (this.cancelInsertBtn) {
             this.cancelInsertBtn.addEventListener('click', () => {
                 this.closeInsertModal();
-            });
-        }
-
-        if (this.btnSidebarMovimientos) {
-            this.btnSidebarMovimientos.addEventListener('click', () => {
-                this.irAMovimientosSeleccionado();
             });
         }
 
@@ -419,11 +411,8 @@ class EmpleadosPage {
                     <button type="button" class="action-button action-edit" data-accion="editar" data-documento="${empleado.ValorDocumentoIdentidad}">
                         Editar
                     </button>
-                    <button type="button" class="action-button action-view" data-accion="movimientos" data-documento="${empleado.ValorDocumentoIdentidad}">
-                        Movimientos
-                    </button>
-                    <button type="button" class="action-button action-delete" data-accion="borrar" data-documento="${empleado.ValorDocumentoIdentidad}">
-                        Borrar
+                    <button type="button" class="action-button action-view" data-accion="impersonar" data-documento="${empleado.ValorDocumentoIdentidad}">
+                        Impersonar
                     </button>
                 </td>
             `;
@@ -440,19 +429,50 @@ class EmpleadosPage {
         `;
     }
 
-    private abrirMovimientos(valorDocumentoIdentidad: string): void {
-        localStorage.setItem('ultimoDocumentoEmpleado', valorDocumentoIdentidad);
-        window.location.href = `/movimientos.html?documento=${encodeURIComponent(valorDocumentoIdentidad)}`;
-    }
+    private async impersonarEmpleado(valorDocumentoIdentidad: string): Promise<void> {
+        const username = localStorage.getItem('username') || '';
 
-    private irAMovimientosSeleccionado(): void {
-        const documento = this.documentoActual || localStorage.getItem('ultimoDocumentoEmpleado') || '';
-        if (!documento) {
-            this.setEstado('Primero consulta o selecciona un empleado y luego abre sus movimientos.', 'warning');
-            return;
+        this.setEstado('Impersonando empleado...', 'info');
+
+        try {
+            const response = await fetch('/api/empleados/impersonar', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-username': username,
+                },
+                body: JSON.stringify({ valorDocumento: valorDocumentoIdentidad }),
+            });
+
+            const payload = await response.json() as {
+                success: boolean;
+                outResultCode: number;
+                message?: string;
+                data?: { idEmpleado: number | null };
+            };
+
+            if (!response.ok || !payload.success) {
+                this.setEstado(payload.message || 'No se pudo impersonar al empleado.', 'error');
+                return;
+            }
+
+            const idEmpleado = payload.data?.idEmpleado;
+            if (!idEmpleado) {
+                this.setEstado('El SP no devolvió el id del empleado.', 'error');
+                return;
+            }
+
+            this.setEstado('Empleado impersonado. Redirigiendo...', 'success');
+            localStorage.setItem('empleadoImpersonadoId', String(idEmpleado));
+            localStorage.setItem('empleadoImpersonadoDoc', valorDocumentoIdentidad);
+
+            setTimeout(() => {
+                window.location.href = `/empleado-view.html?id=${idEmpleado}`;
+            }, 500);
+        } catch (error) {
+            console.error('Error impersonando empleado:', error);
+            this.setEstado('Error de conexión al impersonar.', 'error');
         }
-
-        window.location.href = `/movimientos.html?documento=${encodeURIComponent(documento)}`;
     }
 
     private async consultarEmpleado(valorDocumentoIdentidad: string): Promise<void> {
