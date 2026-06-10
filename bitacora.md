@@ -698,13 +698,15 @@ Presente: Matías Benavides Sandoval
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Se diagnosticó y corrigió un bug en la pantalla de listado de empleados donde los botones de acción (Consultar, Editar, Impersonar) no funcionaban al hacer clic y mostraban texto corrupto. La causa raíz fue que el archivo compilado `public/js/empleados.js` contenía marcas de merge conflict (`<<<<<<< HEAD`, `=======`, `>>>>>>> 6a88b97`) del último merge, que se renderizaban como parte del HTML de la tabla de empleados, rompiendo la estructura de los botones.
+Esta sesión tuvo como objetivo principal **validar end-to-end** todo el trabajo de las sesiones anteriores: el flujo completo Login → Lista de empleados → Impersonar un empleado → Vista de empleado impersonado → Regresar a admin. Este flujo involucraba cambios en backend (SPs, controladores, rutas) y frontend (TS compilado a JS, HTML, CSS) que se habían implementado en las sesiones del 05/06 y 02-04/06/2026 pero nunca se habían probado integrados.
 
-Adicionalmente, se descubrió que el backend (en `dist/`) estaba corriendo código compilado del 20 de mayo — anterior a todos los cambios de SPs, rutas y controladores de la sesión 02-04/06/2026. Se recompiló el backend completo y se reinició el servidor.
+Al intentar la validación surgieron **2 problemas bloqueantes**:
 
-Se recompilaron también todos los archivos frontend con `tsc --project tsconfigFronted.json`, dejando los JS de salida libres de artefactos de merge.
+**1. Botones de la tabla no funcionaban (frontend).** El usuario reportó que los botones "Impersonar" (y los demás) no respondían al clic y mostraban texto corrupto. Al inspeccionar `public/js/empleados.js` se descubrió que el JS compilado contenía marcas de merge conflict sin resolver (`<<<<<<< HEAD`, `=======`, `>>>>>>> 6a88b97`) del merge que se hizo al final de la sesión del 05/06. El template literal del HTML de la tabla incluía los marcadores como texto visible, rompiendo la estructura completa de la fila (3 botones duplicados con atributos mezclados entre la versión HEAD y la entrante). Se recompiló el frontend con `npx tsc --project tsconfigFronted.json` y se verificó que el JS quedara limpio.
 
-Al final de la sesión, el flujo completo funciona: Login → Lista empleados → Impersonar → Vista empleado → Regresar admin.
+**2. Backend servía código viejo.** Tras solucionar los botones, la API devolvía "error interno del servidor". Se descubrió que el proceso Node.js en ejecución cargaba `dist/index.js` compilado el **20 de mayo**, anterior a casi todos los cambios: los SPs correctos no existían aún, las rutas nuevas (impersonar, regresar-admin) no estaban registradas, y los controladores adaptados no se habían compilado. Se recompiló el backend con `npx tsc`, se mató el proceso Node viejo (PID 46940) y se arrancó de nuevo.
+
+Con ambos problemas resueltos, se validó el flujo completo exitosamente: Login → Lista empleados (3 botones por fila: Consultar, Editar, Impersonar) → clic "Impersonar" → redirige a `empleado-view.html?id=N` con datos del empleado → clic "Regresar a admin" → vuelve a la lista.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -712,13 +714,13 @@ PROBLEMAS DETECTADOS Y CÓMO SE RESOLVIERON
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Problema: los botones de la tabla de empleados (Consultar, Editar, Impersonar) no respondían al clic. El usuario reportó que el texto del botón se veía incorrecto.
-Causa: `public/js/empleados.js` (JS compilado) contenía marcas de merge conflict sin resolver del último merge. El template literal del HTML de la tabla incluía `<<<<<<< HEAD`, `=======`, `>>>>>>> 6a88b97` como texto visible, lo que rompía la estructura HTML de la fila y la delegación de eventos.
-Solución: se recompiló el frontend con `npx tsc --project tsconfigFronted.json` — el TS fuente estaba limpio, solo el JS compilado arrastraba el merge. Se verificó que el JS resultante no tuviera marcas de merge ni duplicados en el handler de eventos.
+Problema 1 — Botones de tabla no funcionan ni se renderizan bien.
+Causa: merge conflict sin resolver en `public/js/empleados.js` (JS compilado). El template literal de `renderTabla()` tenía `<<<<<<< HEAD`, `=======`, `>>>>>>> 6a88b97` que se renderizaban como texto. La sección HEAD tenía botones "Movimientos" y "Borrar" con `data-documento="${empleado.ValorDocumentoIdentidad}"` (propiedad incorrecta), y la sección entrante tenía el botón "Impersonar" con `data-documento="${empleado.ValorDocumento}"`. El merge conflict nunca se resolvió en el JS compilado, solo en el TS fuente.
+Solución: recompilar frontend con `npx tsc --project tsconfigFronted.json`. El TS fuente (`src/frontend/empleados.ts`) estaba limpio, por lo que la compilación produjo el JS correcto con 3 botones (Consultar, Editar, Impersonar), todos con `data-documento="${empleado.ValorDocumento}"` y el handler delegado único para `data-accion === "impersonar"`.
 
-Problema: el servidor devolvía "error interno del servidor" al cargar datos.
-Causa: el servidor Node.js en ejecución cargaba `dist/index.js` compilado el 20 de mayo — antes de que existieran los SPs correctos, las rutas nuevas y los controladores adaptados. El código viejo intentaba llamar a SPs que no existían o con parámetros incorrectos.
-Solución: se recompiló el backend con `npx tsc` (tsconfig.json → ./dist), se mató el proceso Node viejo (PID 46940) y se arrancó de nuevo. Se verificó que todos los archivos en `dist/` tuvieran fecha 09/06/2026.
+Problema 2 — API devuelve "error interno del servidor".
+Causa: el proceso Node.js en ejecución usaba `dist/` compilado el 20/05/2026 — antes de la creación de `sp_ImpersonarEmpleado`, `sp_RegresarAdmin`, `sp_GetTiposMovimiento`, `sp_GetEmpleadoByIdInt`, y antes de las rutas nuevas y controladores adaptados (todo eso se creó entre el 02/06 y el 05/06). La base sí tenía los SPs (desplegados en sesiones anteriores), pero el backend no podía llamarlos porque el código compilado en `dist/` no los referenciaba.
+Solución: recompilar backend con `npx tsc` (produce `dist/` desde `src/`), matar proceso Node viejo y reiniciar. Verificar con `Get-ChildItem dist/ -Recurse | Sort LastWriteTime` que todos los `.js` tengan fecha actual.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -726,13 +728,12 @@ AVANCE DEL CÓDIGO
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-- `public/js/empleados.js`: recompilado — eliminadas marcas de merge conflict que rompían botones de la tabla. Ahora renderiza 3 botones correctos (Consultar, Editar, Impersonar) con `data-accion="impersonar"` y `data-documento="${empleado.ValorDocumento}"`.
-- `public/js/empleado-view.js`, `public/js/insertarMovimiento.js`, `public/js/movimientos.js`: recompilados (cambio solo de line endings CRLF).
-- `dist/` (backend): recompilado completo con todos los cambios de sesiones anteriores (controladores, rutas, SP calls).
-- Servidor reiniciado exitosamente.
+- `public/js/empleados.js` (53 líneas cambiadas: +32/-21): recompilado — eliminadas marcas de merge conflict. Ahora renderiza 3 botones correctos por fila con los atributos y handlers correctos.
+- `public/js/empleado-view.js`, `public/js/insertarMovimiento.js`, `public/js/movimientos.js`: recompilados (cambio solo de line endings CRLF, sin contenido nuevo).
+- `dist/` (backend): recompilado completo. Archivos actualizados del 09/06/2026 (antes: 20/05/2026). Incluye todos los controladores, rutas y SP calls de sesiones anteriores.
+- Servidor reiniciado exitosamente. Flujo completo validado.
 
-Archivos modificados (1 con cambios de contenido):
-- `public/js/empleados.js` (53 líneas cambiadas: +32/-21)
+Archivos commiteados: `public/js/empleados.js`, `bitacora.md`.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -740,9 +741,11 @@ MORALEJAS / BUENAS PRÁCTICAS
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Después de un merge con conflictos, siempre recompilar tanto frontend como backend antes de probar — los archivos compilados pueden arrastrar marcas de merge incluso si el fuente está limpio.
-El servidor carga código de `dist/`, no de `src/`. Recompilar con `npx tsc` después de cualquier cambio en `src/` y reiniciar el proceso. El `package.json` tiene script `"build": "tsc"` y `"start": "node dist/index.js"` — usarlos en vez de `ts-node` para producción.
-Cuando el usuario dice "los datos no cargan / error interno del servidor", revisar primero si `dist/` está desactualizado.
+- Después de un merge (incluso si se resuelven los conflictos en los fuentes), **recompilar siempre** tanto frontend como backend. Los archivos compilados pueden quedar con artefactos del merge aunque el `.ts` esté limpio.
+- El servidor carga código de `dist/`, no de `src/`. Recompilar con `npx tsc` (o `npm run build`) después de cualquier cambio y reiniciar el proceso. Usar `npm run dev` (ts-node) para desarrollo evita este problema.
+- Cuando la API devuelve "error interno del servidor" pero la base de datos está online, lo primero es verificar la fecha de los archivos en `dist/`. Si son anteriores a los cambios en `src/`, ese es el problema.
+- `dist/` está en `.gitignore`, por lo que nunca se pushea. Cada desarrollador debe recompilar localmente.
+- El `package.json` tiene `"build": "tsc"` y `"start": "node dist/index.js"` — usarlos consistentemente evita confusiones entre desarrollo y producción.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -750,6 +753,7 @@ PRÓXIMA SESIÓN: ¿QUÉ SIGUE?
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Persona B (Sebastián): conectar sus SPs de planilla (sp_GetPlanillaSemanal, sp_GetPlanillaMensual) a la vista empleado (empleado-view.html/ts).
-Ejecutar sp_CargarCatalogosXML con el XML actualizado si no se ha hecho.
-Implementar el visor de bitácora (R07 admin) si aplica.
+- Persona B (Sebastián): conectar sus SPs de planilla (sp_GetPlanillaSemanal, sp_GetPlanillaMensual) a `empleado-view.html/ts`.
+- Ejecutar `sp_CargarCatalogosXML` con el XML actualizado para popular la BD.
+- Implementar visor de bitácora (R07 admin) si aplica.
+- Considerar usar `npm run dev` (ts-node) para desarrollo y evitar el paso manual de recompilar `dist/` cada vez.
