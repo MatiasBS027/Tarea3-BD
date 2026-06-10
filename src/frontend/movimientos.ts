@@ -1,5 +1,5 @@
 type EmpleadoResumen = {
-    ValorDocumentoIdentidad: string;
+    ValorDocumento: string;
     Nombre: string;
     NombrePuesto: string;
     SaldoVacaciones: number;
@@ -8,7 +8,7 @@ type EmpleadoResumen = {
 type Movimiento = {
     id: number;
     NombreEmpleado: string;
-    ValorDocumentoIdentidad: string;
+    ValorDocumento: string;
     NombreTipoMovimiento: string;
     TipoAccion: string;
     Monto: number;
@@ -110,7 +110,7 @@ class MovimientosPage {
                 <div class="detalle-grid">
                     <div class="detalle-item">
                         <span class="detalle-label">Documento</span>
-                        <span class="detalle-valor">${empleado.ValorDocumentoIdentidad}</span>
+                        <span class="detalle-valor">${empleado.ValorDocumento}</span>
                     </div>
                     <div class="detalle-item">
                         <span class="detalle-label">Nombre</span>

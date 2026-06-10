@@ -11,7 +11,7 @@
 
 type Empleado = {
     Nombre: string;
-    ValorDocumentoIdentidad: string;
+    ValorDocumento: string;
     idPuesto: number;
     NombrePuesto: string;
 };
@@ -22,14 +22,13 @@ type Puesto = {
 };
 
 type EmpleadoDetalle = {
-    ValorDocumentoIdentidad: string;
+    ValorDocumento: string;
     Nombre: string;
     idPuesto: number;
     NombrePuesto: string;
-    FechaContratación?: string;
     FechaContratacion?: string;
-    SaldoVacaciones: number;
-    EsActivo: number;
+    CuentaBancaria?: string;
+    Activo: number;
 };
 
 class EmpleadosPage {
@@ -402,16 +401,16 @@ class EmpleadosPage {
 
             fila.innerHTML = `
                 <td>${empleado.Nombre}</td>
-                <td>${empleado.ValorDocumentoIdentidad}</td>
+                <td>${empleado.ValorDocumento}</td>
                 <td>${empleado.NombrePuesto}</td>
                 <td>
-                    <button type="button" class="action-button action-view" data-accion="consultar" data-documento="${empleado.ValorDocumentoIdentidad}">
+                    <button type="button" class="action-button action-view" data-accion="consultar" data-documento="${empleado.ValorDocumento}">
                         Consultar
                     </button>
-                    <button type="button" class="action-button action-edit" data-accion="editar" data-documento="${empleado.ValorDocumentoIdentidad}">
+                    <button type="button" class="action-button action-edit" data-accion="editar" data-documento="${empleado.ValorDocumento}">
                         Editar
                     </button>
-                    <button type="button" class="action-button action-view" data-accion="impersonar" data-documento="${empleado.ValorDocumentoIdentidad}">
+                    <button type="button" class="action-button action-view" data-accion="impersonar" data-documento="${empleado.ValorDocumento}">
                         Impersonar
                     </button>
                 </td>
@@ -508,7 +507,7 @@ class EmpleadosPage {
             }
 
             const detalle = payload.data;
-            const rawFecha = detalle.FechaContratación ?? detalle.FechaContratacion ?? '';
+            const rawFecha = detalle.FechaContratacion ?? '';
             let fechaContratacion = '';
             if (rawFecha) {
                 try {
@@ -524,15 +523,15 @@ class EmpleadosPage {
                 }
             }
             this.detalleActual = detalle;
-            this.documentoActual = detalle.ValorDocumentoIdentidad;
-            localStorage.setItem('ultimoDocumentoEmpleado', detalle.ValorDocumentoIdentidad);
+            this.documentoActual = detalle.ValorDocumento;
+            localStorage.setItem('ultimoDocumentoEmpleado', detalle.ValorDocumento);
             this.detalleEstado.textContent = 'Detalle cargado correctamente.';
             this.detalleEstado.className = 'status success';
             this.detalleContenido.innerHTML = `
                 <div class="detalle-grid">
                     <div class="detalle-item">
                         <span class="detalle-label">Documento</span>
-                        <span class="detalle-valor">${detalle.ValorDocumentoIdentidad}</span>
+                        <span class="detalle-valor">${detalle.ValorDocumento}</span>
                     </div>
                     <div class="detalle-item">
                         <span class="detalle-label">Nombre</span>
@@ -547,12 +546,8 @@ class EmpleadosPage {
                         <span class="detalle-valor">${fechaContratacion}</span>
                     </div>
                     <div class="detalle-item">
-                        <span class="detalle-label">Saldo vacaciones</span>
-                        <span class="detalle-valor">${detalle.SaldoVacaciones}</span>
-                    </div>
-                    <div class="detalle-item">
                         <span class="detalle-label">Estado</span>
-                        <span class="detalle-valor">${detalle.EsActivo ? 'Activo' : 'Inactivo'}</span>
+                        <span class="detalle-valor">${detalle.Activo ? 'Activo' : 'Inactivo'}</span>
                     </div>
                 </div>
             `;
@@ -571,7 +566,7 @@ class EmpleadosPage {
             return;
         }
 
-        this.documentoDespuesInput.value = this.detalleActual.ValorDocumentoIdentidad;
+        this.documentoDespuesInput.value = this.detalleActual.ValorDocumento;
         this.nombreDespuesInput.value = this.detalleActual.Nombre;
         this.idPuestoDespuesInput.value = String(this.detalleActual.idPuesto);
         this.editarForm.classList.remove('hidden');

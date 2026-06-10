@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planilla - Empleado</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="empleados-page">
+    <div class="app-layout">
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <span class="sidebar-kicker">Planilla Empleado</span>
+                <h2 id="sidebarNombre">Cargando...</h2>
+                <p id="sidebarPuesto"></p>
+            </div>
+
+            <nav class="sidebar-nav">
+                <button id="btnRegresarAdmin" class="sidebar-btn sidebar-btn-primary" type="button">Regresar a interfaz de administrador</button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <button id="logoutBtn" class="sidebar-btn sidebar-btn-ghost" type="button">Cerrar sesión</button>
+            </div>
+        </aside>
+
+        <main class="page-content empleados-shell">
+            <header class="empleados-header">
+                <div>
+                    <h1 id="pageTitle">Planilla del empleado</h1>
+                    <p class="subtitle" id="pageSubtitle">Cargando datos...</p>
+                </div>
+            </header>
+
+            <section class="panel">
+                <div class="panel-title">
+                    <h2>Datos del empleado</h2>
+                </div>
+                <div id="estado" class="status info">Cargando...</div>
+                <div id="detalleEmpleado" class="detalle-contenido"></div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-title">
+                    <h2>Planilla Semanal</h2>
+                </div>
+                <div id="semanalEstado" class="status info">Pendiente — esperando sp_GetPlanillaSemanal</div>
+                <div id="semanalContenido" class="detalle-contenido"></div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-title">
+                    <h2>Planilla Mensual</h2>
+                </div>
+                <div id="mensualEstado" class="status info">Pendiente — esperando sp_GetPlanillaMensual</div>
+                <div id="mensualContenido" class="detalle-contenido"></div>
+            </section>
+        </main>
+    </div>
+
+    <script type="module" src="js/empleado-view.js"></script>
+</body>
+</html>

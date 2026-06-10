@@ -22,19 +22,15 @@ class MovimientosPage {
         this.recargarBtn.addEventListener('click', () => {
             void this.cargarVista();
         });
-        if (this.logoutBtn) {
-            this.logoutBtn.addEventListener('click', () => {
-                localStorage.removeItem('authToken');
-                localStorage.removeItem('username');
-                localStorage.removeItem('ultimoDocumentoEmpleado');
-                window.location.href = '/login.html';
-            });
-        }
-        if (this.volverEmpleadosBtn) {
-            this.volverEmpleadosBtn.addEventListener('click', () => {
-                window.location.href = '/empleados.html';
-            });
-        }
+        this.logoutBtn.addEventListener('click', () => {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('username');
+            localStorage.removeItem('ultimoDocumentoEmpleado');
+            window.location.href = '/login.html';
+        });
+        this.volverEmpleadosBtn.addEventListener('click', () => {
+            window.location.href = '/empleados.html';
+        });
     }
     async cargarVista() {
         if (!this.documentoIdentidad) {
@@ -67,7 +63,7 @@ class MovimientosPage {
                 <div class="detalle-grid">
                     <div class="detalle-item">
                         <span class="detalle-label">Documento</span>
-                        <span class="detalle-valor">${empleado.ValorDocumentoIdentidad}</span>
+                        <span class="detalle-valor">${empleado.ValorDocumento}</span>
                     </div>
                     <div class="detalle-item">
                         <span class="detalle-label">Nombre</span>

@@ -526,3 +526,59 @@ export async function getTiposMovimiento(req: Request, res: Response): Promise<v
         });
     }
 }
+
+// GET /api/empleados/by-id/:id
+// Busca un empleado por id INT (para la vista de impersonación).
+export async function getEmpleadoByIdInt(req: Request, res: Response): Promise<void> {
+    try {
+        const id = Number(req.params.id);
+
+        if (!id || Number.isNaN(id)) {
+            res.status(400).json({
+                success: false,
+                message: 'id es requerido y debe ser un número'
+            });
+            return;
+        }
+
+        const pool = await getPool();
+
+        const result = await pool
+            .request()
+            .input('inId', sql.Int, id)
+            .output('outResultCode', sql.Int)
+            .execute('sp_GetEmpleadoByIdInt');
+
+        const outResultCode: number = result.output.outResultCode;
+
+        if (outResultCode !== 0) {
+            res.status(500).json({
+                success: false,
+                outResultCode,
+                message: await getErrorMessage(outResultCode)
+            });
+            return;
+        }
+
+        const empleado = result.recordset?.[0] ?? null;
+
+        if (!empleado) {
+            res.status(404).json({
+                success: false,
+                message: 'Empleado no encontrado'
+            });
+            return;
+        }
+
+        res.status(200).json({
+            success: true,
+            data: empleado
+        });
+    } catch (error) {
+        console.error('Error en getEmpleadoByIdInt:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error interno del servidor'
+        });
+    }
+}

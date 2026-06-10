@@ -1,5 +1,5 @@
 type EmpleadoDatosMovimiento = {
-    ValorDocumentoIdentidad: string;
+    ValorDocumento: string;
     Nombre: string;
     SaldoVacaciones: number;
 };
@@ -101,7 +101,7 @@ class InsertarMovimientoPage {
                 <div class="detalle-grid">
                     <div class="detalle-item">
                         <span class="detalle-label">Documento</span>
-                        <span class="detalle-valor">${empleado.ValorDocumentoIdentidad}</span>
+                        <span class="detalle-valor">${empleado.ValorDocumento}</span>
                     </div>
 
                     <div class="detalle-item">

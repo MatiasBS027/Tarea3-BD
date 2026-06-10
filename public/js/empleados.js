@@ -299,20 +299,25 @@ class EmpleadosPage {
             const fila = document.createElement('tr');
             fila.innerHTML = `
                 <td>${empleado.Nombre}</td>
-                <td>${empleado.ValorDocumentoIdentidad}</td>
+                <td>${empleado.ValorDocumento}</td>
                 <td>${empleado.NombrePuesto}</td>
                 <td>
-                    <button type="button" class="action-button action-view" data-accion="consultar" data-documento="${empleado.ValorDocumentoIdentidad}">
+                    <button type="button" class="action-button action-view" data-accion="consultar" data-documento="${empleado.ValorDocumento}">
                         Consultar
                     </button>
-                    <button type="button" class="action-button action-edit" data-accion="editar" data-documento="${empleado.ValorDocumentoIdentidad}">
+                    <button type="button" class="action-button action-edit" data-accion="editar" data-documento="${empleado.ValorDocumento}">
                         Editar
                     </button>
+<<<<<<< HEAD
                     <button type="button" class="action-button action-view" data-accion="movimientos" data-documento="${empleado.ValorDocumentoIdentidad}">
                         Movimientos
                     </button>
                     <button type="button" class="action-button action-delete" data-accion="borrar" data-documento="${empleado.ValorDocumentoIdentidad}">
                         Borrar
+=======
+                    <button type="button" class="action-button action-view" data-accion="impersonar" data-documento="${empleado.ValorDocumento}">
+                        Impersonar
+>>>>>>> 6a88b97 (feat(frontend): vista empleado impersonado (R04/R05/R06) + SP sp_GetEmpleadoByIdInt + fix tipos TS)
                     </button>
                 </td>
             `;
@@ -361,7 +366,7 @@ class EmpleadosPage {
                 return;
             }
             const detalle = payload.data;
-            const rawFecha = detalle.FechaContratación ?? detalle.FechaContratacion ?? '';
+            const rawFecha = detalle.FechaContratacion ?? '';
             let fechaContratacion = '';
             if (rawFecha) {
                 try {
@@ -379,15 +384,15 @@ class EmpleadosPage {
                 }
             }
             this.detalleActual = detalle;
-            this.documentoActual = detalle.ValorDocumentoIdentidad;
-            localStorage.setItem('ultimoDocumentoEmpleado', detalle.ValorDocumentoIdentidad);
+            this.documentoActual = detalle.ValorDocumento;
+            localStorage.setItem('ultimoDocumentoEmpleado', detalle.ValorDocumento);
             this.detalleEstado.textContent = 'Detalle cargado correctamente.';
             this.detalleEstado.className = 'status success';
             this.detalleContenido.innerHTML = `
                 <div class="detalle-grid">
                     <div class="detalle-item">
                         <span class="detalle-label">Documento</span>
-                        <span class="detalle-valor">${detalle.ValorDocumentoIdentidad}</span>
+                        <span class="detalle-valor">${detalle.ValorDocumento}</span>
                     </div>
                     <div class="detalle-item">
                         <span class="detalle-label">Nombre</span>
@@ -402,12 +407,8 @@ class EmpleadosPage {
                         <span class="detalle-valor">${fechaContratacion}</span>
                     </div>
                     <div class="detalle-item">
-                        <span class="detalle-label">Saldo vacaciones</span>
-                        <span class="detalle-valor">${detalle.SaldoVacaciones}</span>
-                    </div>
-                    <div class="detalle-item">
                         <span class="detalle-label">Estado</span>
-                        <span class="detalle-valor">${detalle.EsActivo ? 'Activo' : 'Inactivo'}</span>
+                        <span class="detalle-valor">${detalle.Activo ? 'Activo' : 'Inactivo'}</span>
                     </div>
                 </div>
             `;
@@ -424,7 +425,7 @@ class EmpleadosPage {
         if (!this.detalleActual) {
             return;
         }
-        this.documentoDespuesInput.value = this.detalleActual.ValorDocumentoIdentidad;
+        this.documentoDespuesInput.value = this.detalleActual.ValorDocumento;
         this.nombreDespuesInput.value = this.detalleActual.Nombre;
         this.idPuestoDespuesInput.value = String(this.detalleActual.idPuesto);
         this.editarForm.classList.remove('hidden');
