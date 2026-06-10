@@ -49,29 +49,11 @@ export async function getEmpleados(req: Request, res: Response): Promise<void> {
     try {
         const filtro = String(req.query.filtro ?? '').trim();
 
-        // Temporal para pruebas; luego se toma desde token/sesion
-        const username = String(req.headers['x-username'] ?? 'UsuarioScripts');
-        const ipPostIn = req.ip ?? '';
-        const postTime = new Date();
-
         const pool = await getPool();
-        let usernameForLog = username;
-        const usuarioId = await resolveUsuarioId(pool, username);
-
-        if (!usuarioId) {
-            const fallbackResult = await pool
-                .request()
-                .query('SELECT TOP 1 Username FROM Usuario ORDER BY id');
-
-            usernameForLog = String(fallbackResult.recordset?.[0]?.Username ?? 'UsuarioScripts');
-        }
 
         const result = await pool
             .request()
             .input('inNombre', sql.VarChar(128), filtro)
-            .input('inUsername', sql.VarChar(128), usernameForLog)
-            .input('inIpPostIn', sql.VarChar(64), ipPostIn)
-            .input('inPostTime', sql.DateTime, postTime)
             .output('outResultCode', sql.Int)
             .execute('sp_GetEmpleados');
 
@@ -198,7 +180,7 @@ export async function getEmpleadoById(req: Request, res: Response): Promise<void
 
         const result = await pool
             .request()
-                .input('inValorDocumentoIdentidad', sql.NVarChar(32), valorDocumentoIdentidad)
+                .input('inValorDocumento', sql.VarChar(32), valorDocumentoIdentidad)
             .output('outResultCode', sql.Int)
             .execute('sp_GetEmpleadoById');
 
