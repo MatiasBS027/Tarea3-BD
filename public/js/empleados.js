@@ -93,9 +93,6 @@ class EmpleadosPage {
             if (accion === 'borrar') {
                 this.abrirModalBorrado(documento);
             }
-            if (accion === 'impersonar') {
-                void this.impersonarEmpleado(documento);
-            }
         });
         // Insertar empleado: abrir modal
         if (this.btnInsertar) {
@@ -308,16 +305,8 @@ class EmpleadosPage {
                     <button type="button" class="action-button action-edit" data-accion="editar" data-documento="${empleado.ValorDocumento}">
                         Editar
                     </button>
-<<<<<<< HEAD
-                    <button type="button" class="action-button action-view" data-accion="movimientos" data-documento="${empleado.ValorDocumentoIdentidad}">
-                        Movimientos
-                    </button>
-                    <button type="button" class="action-button action-delete" data-accion="borrar" data-documento="${empleado.ValorDocumentoIdentidad}">
-                        Borrar
-=======
                     <button type="button" class="action-button action-view" data-accion="impersonar" data-documento="${empleado.ValorDocumento}">
                         Impersonar
->>>>>>> 6a88b97 (feat(frontend): vista empleado impersonado (R04/R05/R06) + SP sp_GetEmpleadoByIdInt + fix tipos TS)
                     </button>
                 </td>
             `;
@@ -331,17 +320,39 @@ class EmpleadosPage {
             </tr>
         `;
     }
-    abrirMovimientos(valorDocumentoIdentidad) {
-        localStorage.setItem('ultimoDocumentoEmpleado', valorDocumentoIdentidad);
-        window.location.href = `/movimientos.html?documento=${encodeURIComponent(valorDocumentoIdentidad)}`;
-    }
-    irAMovimientosSeleccionado() {
-        const documento = this.documentoActual || localStorage.getItem('ultimoDocumentoEmpleado') || '';
-        if (!documento) {
-            this.setEstado('Primero consulta o selecciona un empleado y luego abre sus movimientos.', 'warning');
-            return;
+    async impersonarEmpleado(valorDocumentoIdentidad) {
+        const username = localStorage.getItem('username') || '';
+        this.setEstado('Impersonando empleado...', 'info');
+        try {
+            const response = await fetch('/api/empleados/impersonar', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-username': username,
+                },
+                body: JSON.stringify({ valorDocumento: valorDocumentoIdentidad }),
+            });
+            const payload = await response.json();
+            if (!response.ok || !payload.success) {
+                this.setEstado(payload.message || 'No se pudo impersonar al empleado.', 'error');
+                return;
+            }
+            const idEmpleado = payload.data?.idEmpleado;
+            if (!idEmpleado) {
+                this.setEstado('El SP no devolvió el id del empleado.', 'error');
+                return;
+            }
+            this.setEstado('Empleado impersonado. Redirigiendo...', 'success');
+            localStorage.setItem('empleadoImpersonadoId', String(idEmpleado));
+            localStorage.setItem('empleadoImpersonadoDoc', valorDocumentoIdentidad);
+            setTimeout(() => {
+                window.location.href = `/empleado-view.html?id=${idEmpleado}`;
+            }, 500);
         }
-        window.location.href = `/movimientos.html?documento=${encodeURIComponent(documento)}`;
+        catch (error) {
+            console.error('Error impersonando empleado:', error);
+            this.setEstado('Error de conexión al impersonar.', 'error');
+        }
     }
     async consultarEmpleado(valorDocumentoIdentidad) {
         const username = localStorage.getItem('username') || 'UsuarioScripts';

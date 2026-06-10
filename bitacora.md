@@ -683,3 +683,73 @@ Levantar SQL Server local + pnpm install + pnpm run dev para validar end-to-end 
 Ejecutar sp_CargarCatalogosXML con el XML actualizado (Ids 17-23) para que los nuevos eventos estén en la BD antes de que Sebastián los use.
 Revisión cruzada: Matías revisa los SPs de Sebastián cuando estén listos.
 Documentar el comportamiento esperado para MarcaAsistencia sin HorarioJornada (riesgo §7 AGENTS.md).
+
+# Bitácora de Sesión
+
+Fecha: 09/06/2026
+
+Inicio: [19:00] | Fin: [20:30] || Total: [1 hora 30 minutos]
+
+Presente: Matías Benavides Sandoval
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+¿QUÉ HICIMOS HOY?
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Se diagnosticó y corrigió un bug en la pantalla de listado de empleados donde los botones de acción (Consultar, Editar, Impersonar) no funcionaban al hacer clic y mostraban texto corrupto. La causa raíz fue que el archivo compilado `public/js/empleados.js` contenía marcas de merge conflict (`<<<<<<< HEAD`, `=======`, `>>>>>>> 6a88b97`) del último merge, que se renderizaban como parte del HTML de la tabla de empleados, rompiendo la estructura de los botones.
+
+Adicionalmente, se descubrió que el backend (en `dist/`) estaba corriendo código compilado del 20 de mayo — anterior a todos los cambios de SPs, rutas y controladores de la sesión 02-04/06/2026. Se recompiló el backend completo y se reinició el servidor.
+
+Se recompilaron también todos los archivos frontend con `tsc --project tsconfigFronted.json`, dejando los JS de salida libres de artefactos de merge.
+
+Al final de la sesión, el flujo completo funciona: Login → Lista empleados → Impersonar → Vista empleado → Regresar admin.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PROBLEMAS DETECTADOS Y CÓMO SE RESOLVIERON
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Problema: los botones de la tabla de empleados (Consultar, Editar, Impersonar) no respondían al clic. El usuario reportó que el texto del botón se veía incorrecto.
+Causa: `public/js/empleados.js` (JS compilado) contenía marcas de merge conflict sin resolver del último merge. El template literal del HTML de la tabla incluía `<<<<<<< HEAD`, `=======`, `>>>>>>> 6a88b97` como texto visible, lo que rompía la estructura HTML de la fila y la delegación de eventos.
+Solución: se recompiló el frontend con `npx tsc --project tsconfigFronted.json` — el TS fuente estaba limpio, solo el JS compilado arrastraba el merge. Se verificó que el JS resultante no tuviera marcas de merge ni duplicados en el handler de eventos.
+
+Problema: el servidor devolvía "error interno del servidor" al cargar datos.
+Causa: el servidor Node.js en ejecución cargaba `dist/index.js` compilado el 20 de mayo — antes de que existieran los SPs correctos, las rutas nuevas y los controladores adaptados. El código viejo intentaba llamar a SPs que no existían o con parámetros incorrectos.
+Solución: se recompiló el backend con `npx tsc` (tsconfig.json → ./dist), se mató el proceso Node viejo (PID 46940) y se arrancó de nuevo. Se verificó que todos los archivos en `dist/` tuvieran fecha 09/06/2026.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+AVANCE DEL CÓDIGO
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- `public/js/empleados.js`: recompilado — eliminadas marcas de merge conflict que rompían botones de la tabla. Ahora renderiza 3 botones correctos (Consultar, Editar, Impersonar) con `data-accion="impersonar"` y `data-documento="${empleado.ValorDocumento}"`.
+- `public/js/empleado-view.js`, `public/js/insertarMovimiento.js`, `public/js/movimientos.js`: recompilados (cambio solo de line endings CRLF).
+- `dist/` (backend): recompilado completo con todos los cambios de sesiones anteriores (controladores, rutas, SP calls).
+- Servidor reiniciado exitosamente.
+
+Archivos modificados (1 con cambios de contenido):
+- `public/js/empleados.js` (53 líneas cambiadas: +32/-21)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+MORALEJAS / BUENAS PRÁCTICAS
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Después de un merge con conflictos, siempre recompilar tanto frontend como backend antes de probar — los archivos compilados pueden arrastrar marcas de merge incluso si el fuente está limpio.
+El servidor carga código de `dist/`, no de `src/`. Recompilar con `npx tsc` después de cualquier cambio en `src/` y reiniciar el proceso. El `package.json` tiene script `"build": "tsc"` y `"start": "node dist/index.js"` — usarlos en vez de `ts-node` para producción.
+Cuando el usuario dice "los datos no cargan / error interno del servidor", revisar primero si `dist/` está desactualizado.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PRÓXIMA SESIÓN: ¿QUÉ SIGUE?
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Persona B (Sebastián): conectar sus SPs de planilla (sp_GetPlanillaSemanal, sp_GetPlanillaMensual) a la vista empleado (empleado-view.html/ts).
+Ejecutar sp_CargarCatalogosXML con el XML actualizado si no se ha hecho.
+Implementar el visor de bitácora (R07 admin) si aplica.
