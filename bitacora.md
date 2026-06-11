@@ -1,80 +1,108 @@
 # Bitácora de cambios
 
-## Sesión: Implementación #5, #6, #10, #12, #13 — 11 Jun 2026
+## Sesión 2026-06-11 — Items #1 al #15 (Parte 2)
 
-### #5 — Validación de entrada con express-validator
-- **Nuevo archivo**: `src/middleware/validation.ts`
-  - Middleware `handleValidationErrors` unificado (retorna 400 con errores descriptivos)
-  - Arrays de validación: `validateLogin`, `validateGetEmpleados`, `validateGetEmpleadoByDoc`, `validateImpersonar`, `validateGetEmpleadoByIdInt`, `validateGetBitacora`
-  - Sanitización: `.trim()` en strings, `.isInt()` en IDs, `.isISO8601()` en fechas
-- **Actualizados**: `src/routes/auth.ts`, `src/routes/empleados.ts`, `src/routes/bitacora.ts`
-  - Cada ruta ahora usa su array de validación antes del controller
-- **Dependencia añadida**: `express-validator` (v7.2.1)
+### Commits realizados (push a main)
 
-### #6 — Gitignore: outputs compilados consistentes
-- Eliminada la entrada `dist` de `.gitignore` para que ambos outputs (`dist/` y `public/js/`) se commiteen
-- `dist/` agregado al staging (`git add dist/`)
-- Añadido script `"build:all"` en `package.json` (compila backend + frontend de una vez)
-- Añadido `"postinstall"` en `package.json` para compilar automáticamente tras `pnpm install`
+```
+975149d chore: remove unused agent skill files from repo
+ab567e8 feat: input validation, health endpoint, auth improvements, and dev tooling
+110a908 chore: relocate Datos.xml to SQL/DATA, rebuild dist, update docs
+```
 
-### #10 — Error mapping en getEmpleadoByIdInt
-- `src/controllers/empleadoController.ts`:
-  - Cambiado `res.status(500)` genérico → mapping por código:
-    - 50012 → 404 (no encontrado)
-    - 50008 → 500 (error interno)
-    - otros → 400
-  - Respuesta 404 ahora incluye `outResultCode` y `message` desde `getErrorMessage()`
-  - Eliminada validación manual duplicada (ya la cubre `validation.ts`)
-  - Respuesta 200 ahora incluye `outResultCode` para consistencia
-
-### #12 — Health check
-- `src/index.ts`: Añadida ruta `GET /health` sin autenticación:
-  ```json
-  { "status": "ok", "timestamp": "2026-06-11T..." }
-  ```
-
-### #13 — Dev script con hot-reload
-- `package.json`: `"dev"` cambiado de `ts-node src/index.ts` a `tsx watch src/index.ts`
-- **Dependencia añadida**: `tsx` (v4.19.3)
-
-### AGENTS.md actualizado
-- Sección 4: documentados middleware de auth, validación, scripts disponibles, health check
-- Sección 5: añadidos `sp_GetEmpleadoByIdInt`, `sp_GetBitacora`, `sp_GetTiposEvento`
-- Sección 6: añadida regla de validación de entrada con express-validator
+Resumen: +1,497 líneas, −9,630 líneas, 54 archivos eliminados, 18 archivos creados.
 
 ---
 
-## Sesión: Login/Logout/Bitácora + adaptación backend — Jun 2026
+### Items completados en esta sesión
 
-### SPs implementados
-- `sp_Login` — autenticación con escritura a BitacoraEvento
-- `sp_Logout` — cierre de sesión explícito
-- `sp_GetEmpleados` — listado con filtro opcional
-- `sp_GetEmpleadoById` — búsqueda por documento
-- `sp_GetEmpleadoByIdInt` — búsqueda por ID (impersonación)
-- `sp_ImpersonarEmpleado` — admin ve como empleado
-- `sp_RegresarAdmin` — vuelta a interfaz admin
-- `sp_GetTiposEvento` — catálogo
-- `sp_GetBitacora` — paginada con filtros
-- `sp_GetTiposMovimiento` — catálogo
-- `sp_GetPuestos` — catálogo
+| # | Estado | Item | Cambios |
+|---|--------|------|---------|
+| 1 | ✅ Hecho | Eliminar CRUD muerto del frontend | `public/empleados.html`: −50 líneas (formulario CRUD inline). `public/js/empleados.js`: −384 líneas (funciones CRUD, modales, handlers). `public/css/style.css`: −238 líneas (estilos CRUD no usados). `src/frontend/empleados.ts`: −479 líneas (código fuente TS del CRUD) |
+| 2 | ✅ Hecho | Auth real: sp_Login retorna id + tipo | `SQL/SPs/sp_Login.sql`: +@outIdUsuario OUTPUT, +@outTipo VARCHAR(2) OUTPUT. `src/controllers/authController.ts`: desacoplado, maneja payload JWT con id + tipo. `src/middleware/authMiddleware.ts`: creado (authenticate + requireAdmin). `src/controllers/usuarioHelper.ts`: eliminado |
+| 3 | 🔲 Pendiente | Middleware de auth centralizado | `src/middleware/authMiddleware.ts` creado (authenticate + requireAdmin). Falta integration testing end-to-end |
+| 5 | ✅ Hecho | Validación de entrada | `src/middleware/validation.ts`: creado con express-validator. 6 arrays de validación (login, empleados, bitácora, etc.) con sanitización y mensajes en español. Rutas actualizadas para usar validación |
+| 6 | ✅ Hecho | Gitignore consistente | Eliminado `dist` del `.gitignore`. Ambos outputs (`dist/` + `public/js/`) ahora se commitean. Añadido script `build:all` y `postinstall` |
+| 7 | ✅ Hecho | Ignorar .opencode/ .agents/ | Añadido `.opencode/` y `.agents/` al `.gitignore`. 52 archivos removidos del tracking (`git rm --cached`) |
+| 8 | ✅ Hecho | Limpiar carpetas vacías | `src/models/` y `src/scripts/` eliminadas (tracking vacío, ya no aparecen en working tree) |
+| 10 | ✅ Hecho | Error mapping 500→404 | `getEmpleadoByIdInt` ahora retorna 404 para 50012, 500 para 50008, 400 para otros códigos. Consistente con demás endpoints |
+| 11 | ✅ Hecho | Fix package.json | `main` corregido a `dist/index.js`. `test` actualizado. Scripts reorganizados |
+| 12 | ✅ Hecho | Health check | `GET /health` en `src/index.ts` sin autenticación. Retorna `{ status: "ok", timestamp }` |
+| 13 | ✅ Hecho | Dev hot-reload | `"dev"` cambiado a `tsx watch src/index.ts`. Dependencia `tsx` añadida |
+| 14 | ✅ Hecho | Mover Datos.xml | `data/Datos.xml` → `SQL/DATA/Datos.xml` (detectado por git como rename) |
+| 15 | ✅ Hecho | Consistencia AGENTS.md | Actualizada sección 4 (arquitectura), 5 (SPs), 6 (workflow). Documentados scripts, health check, validación |
+
+### Detalle por archivo
+
+#### Backend — TypeScript (src/)
+| Archivo | Cambio |
+|---------|--------|
+| `src/middleware/validation.ts` | **Nuevo**. 6 arrays de validación con express-validator |
+| `src/middleware/authMiddleware.ts` | **Nuevo**. authenticate (JWT verify) + requireAdmin (tipo='1') |
+| `src/controllers/authController.ts` | Refactor: desacoplado, usa pool.request().execute, payload JWT con id+tipo |
+| `src/controllers/empleadoController.ts` | Error mapping 500→404, validación duplicada removida |
+| `src/controllers/usuarioHelper.ts` | **Eliminado**. Reemplazado por authMiddleware |
+| `src/routes/auth.ts` | Usa validateLogin, llama a authController |
+| `src/routes/empleados.ts` | Usa validateGetEmpleados, validateGetEmpleadoByDoc, validateImpersonar, validateGetEmpleadoByIdInt |
+| `src/routes/bitacora.ts` | Usa validateGetBitacora |
+| `src/index.ts` | +GET /health, estructura limpia |
+| `src/frontend/*.ts` | Limpieza de CRUD muerto, mejoras de UX |
+
+#### Backend — Compilado (dist/)
+| Archivo | Cambio |
+|---------|--------|
+| `dist/*.js` (14 archivos) | **Nuevos**. Compilación del backend completa |
+
+#### SQL
+| Archivo | Cambio |
+|---------|--------|
+| `SQL/SPs/sp_Login.sql` | +@outIdUsuario, +@outTipo OUTPUTs |
+| `data/Datos.xml` → `SQL/DATA/Datos.xml` | Relocalizado |
+
+#### Frontend
+| Archivo | Cambio |
+|---------|--------|
+| `public/js/empleados.js` | −384 líneas (CRUD eliminado) |
+| `public/empleados.html` | −50 líneas (formulario CRUD) |
+| `public/css/style.css` | −238 líneas (estilos muertos) |
+| `public/js/*.js` (resto) | Recompilados con cambios TS |
+| `public/js/utils.js` | +helper compartido |
+
+#### Configuración
+| Archivo | Cambio |
+|---------|--------|
+| `.gitignore` | −dist, +.opencode/, +.agents/ |
+| `package.json` | main, dev, test, +build:all, +postinstall, +express-validator, +tsx |
+| `pnpm-lock.yaml` | Actualizado con nuevas dependencias |
+| `pnpm-workspace.yaml` | **Nuevo**. Config pnpm para esbuild |
+
+#### Documentación
+| Archivo | Cambio |
+|---------|--------|
+| `AGENTS.md` | Secciones 4, 5, 6 actualizadas |
+| `bitacora.md` | Este archivo, reescrito completo |
+
+### Items pendientes
+- **#3**: Probar middleware de auth end-to-end (faltan tests de integración)
+
+---
+
+## Sesiones anteriores (Jun 2026)
+
+### Login/Logout/Bitácora + adaptación backend
+
+#### SPs implementados
+- `sp_Login` / `sp_Logout` — autenticación
+- `sp_GetEmpleados` / `sp_GetEmpleadoById` / `sp_GetEmpleadoByIdInt` — consulta empleados
+- `sp_ImpersonarEmpleado` / `sp_RegresarAdmin` — R03/R06
+- `sp_GetTiposEvento` / `sp_GetBitacora` — bitácora (R07)
+- `sp_GetTiposMovimiento` / `sp_GetPuestos` — catálogos
 - `sp_GetError` — helper de mensajes
 
-### Backend adaptado (src/)
-- Controladores: auth, empleado, bitácora, puesto, tipoMovimiento
-- Middleware: JWT (authMiddleware.ts)
-- Rutas protegidas vs públicas
-- Error helper con códigos descriptivos
-- Conexión a BD con connection pool (`mssql`)
+#### Backend adaptado
+- Controladores, middleware JWT, rutas, error helper, connection pool
+- Frontend (login, empleados, empleado-view, bitácora)
 
-### Frontend adaptado (public/)
-- login.html/js — formulario de login con JWT
-- empleados.html/js — CRUD de empleados con impersonación
-- empleado-view.html/js — vista de empleado individual
-- bitacora.html/js — consulta de eventos paginada
-- utils.js — funciones compartidas
-- style.css — diseño responsivo
-
-### Modelo de datos
-- Creadas 21 tablas con 23 FKs y 1 trigger
+#### Modelo de datos
+- 21 tablas, 23 FKs, 1 trigger
 - Scripts: VaciarDB.sql, Tablas.sql, Trigger.sql, CargarDatosXML.sql
