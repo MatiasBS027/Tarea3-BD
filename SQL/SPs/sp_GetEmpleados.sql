@@ -14,7 +14,6 @@ CREATE PROCEDURE [dbo].[sp_GetEmpleados]
 AS
 BEGIN
     SET NOCOUNT ON;
-    SET XACT_ABORT ON;
 
     SET @outResultCode = 0;
 
@@ -36,6 +35,14 @@ BEGIN
         END
         ELSE
         BEGIN
+            -- R07: registrar el filtro usado en BitacoraEvento
+            -- TipoEvento 5 = "Filtro empleados" (se asume que existe en catalogo)
+            IF EXISTS (SELECT 1 FROM dbo.TipoEvento WHERE id = 5)
+            BEGIN
+                INSERT INTO dbo.BitacoraEvento (idTipoEvento, idUsuario, PostTime, IpPostIn, Descripcion)
+                VALUES (5, NULL, GETDATE(), '', 'Filtro empleado: ' + @inNombre);
+            END;
+
             SELECT
                 e.id,
                 e.Nombre,

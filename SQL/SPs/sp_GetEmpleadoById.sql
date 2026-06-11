@@ -14,7 +14,6 @@ CREATE PROCEDURE [dbo].[sp_GetEmpleadoById]
 AS
 BEGIN
     SET NOCOUNT ON;
-    SET XACT_ABORT ON;
 
     SET @outResultCode = 0;
 
