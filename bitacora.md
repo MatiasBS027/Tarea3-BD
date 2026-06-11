@@ -83,7 +83,19 @@ Resumen: +1,497 líneas, −9,630 líneas, 54 archivos eliminados, 18 archivos c
 | `bitacora.md` | Este archivo, reescrito completo |
 
 ### Items pendientes
-- **#3**: Probar middleware de auth end-to-end (faltan tests de integración)
+- Ninguno — todos los items iniciales (#1-#15) completados en esta sesión.
+
+### Subsesión #3 (post-push) — Auth middleware centralizado con tests
+- **`src/middleware/authMiddleware.ts`**: refactorizado con validaciones más estrictas
+  - `decodeToken`: valida que tipo sea solo '1' o '2', normaliza username con trim, rechaza tokens con campos faltantes
+  - `authenticate`: mensajes descriptivos (distingue "token requerido" vs "token vacío" vs "token inválido/expirado")
+  - `requireAdmin`: distingue 401 (no autenticado) vs 403 (autenticado pero no admin)
+- **`tests/authMiddleware.test.ts`**: 16 tests unitarios (13 para decodeToken, 3 para requireAdmin)
+  - Ejecutar con: `pnpm test:auth` o `pnpm test`
+  - No requiere BD — prueba lógica pura del token
+- **`pnpm-workspace.yaml`**: `approve-builds esbuild: true` (configurado)
+- **`package.json`**: scripts `test` y `test:auth` añadidos
+- **`AGENTS.md`**: documentados tests y paso de approve-builds
 
 ---
 
