@@ -173,6 +173,10 @@ Cuando el jueves es el **último jueves** del mes calendario:
   - `pnpm build:all` — ambos
   - `postinstall` — compila automáticamente tras `pnpm install`
 - **Health check**: `GET /health` sin autenticación, devuelve `{ status: "ok", timestamp }`.
+- **Tests**:
+  - `pnpm test` — corre todos los tests en `tests/*.test.ts`
+  - `pnpm test:auth` — solo tests de auth middleware (16 tests, no requiere BD)
+- **Auth middleware**: `src/middleware/authMiddleware.ts` contiene `authenticate` (JWT decode) y `requireAdmin` (tipo='1'). Cableado en `src/index.ts` por ruta; tests en `tests/authMiddleware.test.ts`.
 
 ### 4.1 Conexión
 La conexión real está en `src/db/connection.ts` (asume base ya creada y SPs ya desplegados). Credenciales dev-only — rotar antes de producción.
@@ -209,6 +213,7 @@ Todos con `SET NOCOUNT ON;` (NO usar `SET XACT_ABORT ON` — combinado con trans
 5. **Validación de entrada**: usar arrays de `validateXxx` en `src/middleware/validation.ts` por ruta. No repetir validación manual en controllers.
 6. **Cada cambio al esquema** requiere probar con el dataset de ejemplo (seed en `sp_CargarCatalogosXML` + INSERTs de prueba en scripts separados).
 7. **Mapeo XML → BD**: el SP de carga (`sp_CargarCatalogosXML`) es el único punto que lee el XML. Idempotente: `WHERE NOT EXISTS` o `MERGE`.
+8. **Primer `pnpm install`**: ejecutar `pnpm approve-builds esbuild` para que el build script de esbuild pueda correr. Caso contrario, `postinstall` falla y los test commands se rompen.
 
 ---
 
