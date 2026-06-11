@@ -3,10 +3,9 @@ import path from 'path';
 import { getPool } from './db/connection';
 import empleadosRouter from './routes/empleados';
 import authRouter from './routes/auth';
-import impersonarRouter from './routes/impersonar';
-import movimientosRouter from './routes/movimientos';
 import puestosRouter from './routes/puestos';
 import tiposMovimientoRouter from './routes/tiposMovimiento';
+import bitacoraRouter from './routes/bitacora';
 
 const app = express();
 const PORT = 3000;
@@ -14,16 +13,15 @@ const PORT = 3000;
 // Middlewares
 app.use(express.json());
 
-// Servir archivos estáticos del frontend
+// Servir archivos estaticos del frontend
 app.use(express.static(path.join(__dirname, '../public')));
 
 // Rutas API
 app.use('/api/auth', authRouter);
-app.use('/api/auth', impersonarRouter);
 app.use('/api/empleados', empleadosRouter);
-app.use('/api/movimientos', movimientosRouter);
 app.use('/api/puestos', puestosRouter);
 app.use('/api/tiposMovimiento', tiposMovimientoRouter);
+app.use('/api/bitacora', bitacoraRouter);
 
 // Iniciar servidor
 async function startServer(): Promise<void> {

@@ -1,39 +1,35 @@
 {
-  "name": "tarea2-bd",
+  "name": "tarea3-bd",
   "version": "1.0.0",
-  "description": "ITCR | Escuela de Ingeniería en Computación | Base de Datos 1",
+  "description": "ITCR | Escuela de Ingenieria en Computacion | Base de Datos 1",
   "main": "index.js",
   "scripts": {
     "build": "tsc",
     "build:frontend": "tsc --project tsconfigFronted.json",
     "dev": "ts-node src/index.ts",
     "start": "node dist/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "seed:xml": "ts-node src/scripts/xmlParser.ts"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/MatiasBS027/Tarea2-BD.git"
+    "url": "git+https://github.com/MatiasBS027/Tarea3-BD.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "bugs": {
-    "url": "https://github.com/MatiasBS027/Tarea2-BD/issues"
+    "url": "https://github.com/MatiasBS027/Tarea3-BD/issues"
   },
-  "homepage": "https://github.com/MatiasBS027/Tarea2-BD#readme",
+  "homepage": "https://github.com/MatiasBS027/Tarea3-BD#readme",
   "dependencies": {
-    "cors": "^2.8.6",
     "express": "^5.2.1",
-    "mssql": "^12.2.1",
-    "xml2js": "^0.6.2"
+    "mssql": "^12.2.1"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
     "@types/mssql": "^9.1.9",
     "@types/node": "^25.5.0",
-    "@types/xml2js": "^0.4.14",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   }

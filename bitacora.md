@@ -757,3 +757,190 @@ PRÓXIMA SESIÓN: ¿QUÉ SIGUE?
 - Ejecutar `sp_CargarCatalogosXML` con el XML actualizado para popular la BD.
 - Implementar visor de bitácora (R07 admin) si aplica.
 - Considerar usar `npm run dev` (ts-node) para desarrollo y evitar el paso manual de recompilar `dist/` cada vez.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Bitácora de Sesión
+
+Fecha: 10/06/2026
+
+Inicio: [19:00] | Fin: [20:30] || Total: [1 hora 30 minutos]
+
+Presente: Matías Benavides Sandoval
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+¿QUÉ HICIMOS HOY?
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Se implementó R07 (visor de bitácora de eventos) completo: stored procedure, controller, rutas y frontend.
+
+Se creó sp_GetBitacora como SP de solo lectura (sin transacción) que acepta filtros opcionales (@inIdUsuario, @inIdTipoEvento, @inFechaDesde, @inFechaHasta) y paginación (@inPageNumber, @inPageSize). Retorna dos result sets: la data paginada con joins a TipoEvento y Username de Usuario, y el count total de filas que cumplen los filtros.
+
+Se creó bitacoraController.ts con una única función getBitacora que parsea los query params, llama al SP, y retorna los dos result sets. Se registraron las rutas en bitacora.ts bajo /api/bitacora (GET / con filtros, GET /tipos-evento para el dropdown).
+
+Se creó la página bitacora.html con el mismo layout dark theme del proyecto. El formulario de filtros tiene 4 campos: usuario (select dinámico), tipo de evento (select dinámico), fecha desde, fecha hasta. La tabla muestra 10 filas por página con columnas: Fecha, Usuario, IP, Evento, Descripción. Se agregó paginación con botones Anterior/Siguiente.
+
+Se agregó el menú "Bitácora" al sidebar de admin (solo visible cuando tipo='1').
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PROBLEMAS DETECTADOS Y CÓMO SE RESOLVIERON
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Problema: el frontend no mostraba el total de registros para calcular páginas.
+Causa: sp_GetBitacora solo devolvía la data, no el count total.
+Solución: se modificó el SP para que haga un segundo SELECT con COUNT(*). El controller captura ambos result sets y los retorna como { data, total }. El frontend usa Math.ceil(total / pageSize).
+
+Problema: los SPs de solo lectura tenían SET XACT_ABORT ON, que causaba Msg 3930.
+Causa: SET XACT_ABORT ON es innecesario en SPs que no escriben nada.
+Solución: se quitó SET XACT_ABORT ON de sp_GetError, sp_GetEmpleados y sp_GetEmpleadoById.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+AVANCE DEL CÓDIGO
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SPs:
+- SQL/SPs/sp_GetBitacora.sql (nuevo): SP de solo lectura con filtros y paginación. Retorna data + count en dos result sets.
+
+Backend:
+- src/controllers/bitacoraController.ts (nuevo): getBitacora + getTiposEvento.
+- src/routes/bitacora.ts (nuevo): GET / (filtros) + GET /tipos-evento.
+
+Frontend:
+- public/bitacora.html (nuevo): página de bitácora con filtros, tabla y paginación.
+- src/frontend/bitacora.ts (nuevo): clase BitacoraPage con carga de datos, filtros, paginación.
+- public/js/bitacora.js: compilado desde bitacora.ts.
+
+Sidebar:
+- src/frontend/empleados.ts: agregado menú "Bitácora" condicional (admin only).
+- recompilado empleados.js.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+MORALEJAS / BUENAS PRÁCTICAS
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Un SP de consulta con paginación siempre debe retornar dos result sets: la data y el count total. Sin el count, el frontend no puede calcular el total de páginas.
+Los SPs de solo lectura no necesitan SET XACT_ABORT ON ni BEGIN TRANSACTION. Solo complican el código y pueden causar bugs como Msg 3930.
+El sidebar del admin debe ser condicional (tipo='1') para que los empleados impersonados no vean menús de administrador.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Bitácora de Sesión
+
+Fecha: 10/06/2026
+
+Inicio: [20:30] | Fin: [22:30] || Total: [2 horas]
+
+Presente: Matías Benavides Sandoval
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+¿QUÉ HICIMOS HOY?
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Se realizó una limpieza arquitectónica mayor del backend. El objetivo fue eliminar toda SQL inline restante (queries directas a la BD) y migrarlas a stored procedures dedicados, y eliminar código muerto acumulado de sesiones anteriores.
+
+Se crearon 4 SPs nuevos: sp_GetUsuarioId (resuelve id desde Username), sp_GetPuestos (catálogo de puestos), sp_GetTiposEvento (catálogo de tipos de evento), sp_GetLastDbError (obtiene el último error de DBError para un usuario). Todos deployados en PlanillaDB.
+
+Se refactorizó empleadoController.ts: de ~584 líneas a ~200 líneas. Se extrajeron puestoController.ts (getPuestos vía sp_GetPuestos), tiposMovimientoController.ts (getTiposMovimiento vía sp_GetTiposMovimiento) y usuarioHelper.ts (resolveUsuarioId vía sp_GetUsuarioId). Se creó utils.ts en frontend con funciones compartidas (setEstado, formatearFecha, formatearFechaHora, logout).
+
+Se eliminaron 15 archivos muertos: 5 SPs de Tarea2-BD (VacacionesDB), impersonarController.ts (duplicado), movimientoController.ts, routes/impersonar.ts, routes/movimientos.ts, models/Auth.ts, public/js/empleado.js, movimientos.html, insertarMovimiento.html, src/frontend/movimientos.ts, src/frontend/insertarMovimiento.ts.
+
+Se limpió errorhelper.ts: la función getErrorMessage ahora llama a sp_GetError en vez de hacer SQL inline. Se eliminó la función resolveUsuarioId (ya vivía en usuarioHelper.ts).
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PROBLEMAS DETECTADOS Y CÓMO SE RESOLVIERON
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Problema: errorhelper.ts tenía SQL inline para resolver mensajes de error y el último DBError.
+Causa: era código legacy de Tarea2-BD que nunca se migró a SPs.
+Solución: se reescribió para llamar a sp_GetError y sp_GetLastDbError.
+
+Problema: imports de utils.ts en frontend fallaban con "Failed to resolve module specifier".
+Causa: los imports usaban './utils' sin extensión .js, pero browsers con ES modules requieren la extensión explícita.
+Solución: se cambiaron todos los imports a './utils.js'.
+
+Problema: frontend y backend compilaban con warnings de archivos eliminados.
+Causa: tsconfig.json incluía src/frontend/** en la compilación backend, y tsconfigFronted.json no excluía archivos muertos.
+Solución: se actualizó tsconfig.json para excluir src/frontend/** y se limpió dist/frontend/.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+AVANCE DEL CÓDIGO
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SPs nuevos (4):
+- SQL/SPs/sp_GetUsuarioId.sql: resuelve id desde @inUsername.
+- SQL/SPs/sp_GetPuestos.sql: catálogo de puestos con salario.
+- SQL/SPs/sp_GetTiposEvento.sql: catálogo de tipos de evento.
+- SQL/SPs/sp_GetLastDbError.sql: último error de DBError para un usuario.
+
+SPs actualizados (3):
+- SQL/SPs/sp_GetError.sql: quitado SET XACT_ABORT ON.
+- SQL/SPs/sp_GetEmpleados.sql: quitado SET XACT_ABORT ON.
+- SQL/SPs/sp_GetEmpleadoById.sql: quitado SET XACT_ABORT ON.
+
+Backend refactorizado:
+- src/controllers/usuarioHelper.ts (nuevo): resolveUsuarioId via sp_GetUsuarioId.
+- src/controllers/puestoController.ts (nuevo): getPuestos via sp_GetPuestos.
+- src/controllers/tiposMovimientoController.ts (nuevo): getTiposMovimiento via sp_GetTiposMovimiento.
+- src/controllers/empleadoController.ts: reducido de ~584 a ~200 líneas, sin SQL inline.
+- src/utils/errorhelper.ts: migrado a sp_GetError y sp_GetLastDbError.
+- src/routes/puestos.ts (nuevo): GET /api/puestos.
+- src/routes/tiposMovimiento.ts (nuevo): GET /api/tipos-movimiento.
+- src/routes/empleados.ts: eliminadas rutas de insert/update/delete (sin SP).
+
+Frontend refactorizado:
+- src/frontend/utils.ts (nuevo): setEstado, formatearFecha, formatearFechaHora, logout.
+- src/frontend/empleados.ts: importa de utils.js.
+- src/frontend/empleado-view.ts: importa de utils.js, botón regresar condicional.
+- src/frontend/bitacora.ts: importa de utils.js.
+- src/frontend/AuthService.ts: eliminado método logout muerto.
+
+Archivos eliminados (15):
+- SQL/SPs/sp_InsertarEmpleado.sql, sp_UpdateEmpleado.sql, sp_DeleteEmpleado.sql, sp_GetMovimientos.sql, sp_InsertMovimiento.sql.
+- src/controllers/impersonarController.ts, src/controllers/movimientoController.ts.
+- src/routes/impersonar.ts, src/routes/movimientos.ts.
+- src/models/Auth.ts.
+- public/js/empleado.js, public/movimientos.html, public/insertarMovimiento.html.
+- src/frontend/movimientos.ts, src/frontend/insertarMovimiento.ts.
+
+Configuración:
+- tsconfig.json: src/frontend/** excluido de compilación backend, lib sin DOM.
+- package.json: nombre → tarea3-bd, dependencias cors y xml2js eliminadas, script seed:xml eliminado.
+- public/css/style.css: selectores obsoletos eliminados.
+- index.ts: imports y mounts de impersonarRouter y movimientosRouter eliminados.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+MORALEJAS / BUENAS PRÁCTICAS
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Toda consulta a la BD debe ir por SP, nunca SQL inline en controllers. Esto permite cambiar la lógica de BD sin tocar el backend, y mantiene la capa de datos separada.
+Los imports de frontend con ES modules requieren extensión .js explícita. Sin ella, el browser falla silenciosamente con "Failed to resolve module specifier".
+Antes de eliminar un archivo, verificar que ningún otro archivo lo importe. Usar grep para buscar referencias.
+Mantener utility functions compartidas (fechas, estado) en un archivo utils.ts evita duplicación entre módulos del frontend.
+El backend carga código de dist/, no de src/. Después de cualquier cambio en src/, recompilar con npx tsc y reiniciar el servidor.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PRÓXIMA SESIÓN: ¿QUÉ SIGUE?
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- Persona B (Sebastián): implementar sp_ProcesarAsistencia, sp_ProcesarPlanillaSemanal, sp_ProcesarPlanillaMensual, sp_CrearCalendario, sp_GetPlanillaSemanal, sp_GetPlanillaMensual, sp_CargarCatalogosXML.
+- Conectar SPs de planilla a empleado-view.html/ts.
+- Verificar que empleados, impersonar, empleado-view y bitácora sigan funcionando tras la limpieza.
+- Posibles mejoras: índices en tablas consultadas frecuentemente (BitacoraEvento, Empleado).

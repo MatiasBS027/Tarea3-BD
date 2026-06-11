@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap');
+
 /* ==================== ESTILOS GLOBALES ==================== */
 * {
     margin: 0;
@@ -6,7 +8,7 @@
 }
 
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'Fira Sans', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     display: flex;
     justify-content: center;
@@ -269,15 +271,15 @@ body.login-page {
     align-items: center;
     min-height: 100vh;
     padding: 24px;
-    background: #242424;
+    background: #0A0A10;
     color: #f3f4f6;
 }
 
 body.login-page .login-box {
-    background: #111111;
-    border: 1px solid #313131;
-    border-radius: 14px;
-    box-shadow: none;
+    background: #0D0D15;
+    border: 1px solid #1E1E2A;
+    border-radius: 16px;
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
 }
 
 body.login-page h1 {
@@ -359,7 +361,7 @@ body.movimientos-page {
     display: block;
     min-height: 100vh;
     padding: 0;
-    background: #242424;
+    background: #0A0A10;
     color: #f3f4f6;
 }
 
@@ -376,8 +378,8 @@ body.movimientos-page {
     top: 0;
     left: 0;
     bottom: 0;
-    background: #191919;
-    border-right: 1px solid #313131;
+    background: #0D0D15;
+    border-right: 1px solid #1E1E2A;
     padding: 24px 18px;
     display: flex;
     flex-direction: column;
@@ -387,7 +389,7 @@ body.movimientos-page {
 
 .sidebar-brand {
     padding-bottom: 18px;
-    border-bottom: 1px solid #2e2e2e;
+    border-bottom: 1px solid #1E1E2A;
 }
 
 .sidebar-kicker {
@@ -488,9 +490,10 @@ body.movimientos-page {
 }
 
 .page-content .panel {
-    background: #1c1c1c;
-    border: 1px solid #313131;
-    box-shadow: none;
+    background: #111118;
+    border: 1px solid #1E1E2A;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
     color: #f5f5f5;
 }
 
@@ -503,16 +506,56 @@ body.movimientos-page {
 }
 
 .page-content .counter {
-    background: rgba(109, 124, 255, 0.16);
+    background: rgba(109, 124, 255, 0.12);
     color: #d7ddff;
+    border: 1px solid rgba(109, 124, 255, 0.15);
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    white-space: nowrap;
 }
 
 .page-content .filter-row input,
 .page-content .editar-field input,
 .page-content .editar-field select {
-    background: #171717;
+    background: #0D0D15;
     color: #f5f5f5;
-    border-color: #3a3a3a;
+    border-color: #2A2A3A;
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 0.95rem;
+    font-family: 'Fira Sans', 'Segoe UI', sans-serif;
+}
+
+.page-content input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.8);
+    cursor: pointer;
+    padding: 4px;
+}
+
+.page-content input[type="datetime-local"]::-webkit-datetime-edit,
+.page-content input[type="datetime-local"]::-webkit-datetime-edit-fields-wrapper {
+    color: #f5f5f5;
+}
+
+.page-content input[type="datetime-local"]::-webkit-datetime-edit-text {
+    color: #9ca3af;
+}
+
+.page-content input[type="datetime-local"]::-webkit-datetime-edit-year-field,
+.page-content input[type="datetime-local"]::-webkit-datetime-edit-month-field,
+.page-content input[type="datetime-local"]::-webkit-datetime-edit-day-field,
+.page-content input[type="datetime-local"]::-webkit-datetime-edit-hour-field,
+.page-content input[type="datetime-local"]::-webkit-datetime-edit-minute-field,
+.page-content input[type="datetime-local"]::-webkit-datetime-edit-ampm-field {
+    color: #f5f5f5;
+    background: transparent;
+}
+
+.page-content input[type="datetime-local"]::-webkit-inner-spin-button {
+    filter: invert(0.8);
+    cursor: pointer;
 }
 
 /* Estilos embellecidos para combobox de tipo de movimiento */
@@ -571,13 +614,28 @@ body.movimientos-page {
 }
 
 .page-content .ghost-btn {
-    background: #2a2a2a;
+    background: #1A1A24;
     color: #e5e7eb;
+    border: 1px solid #2A2A3A;
+}
+
+.page-content .ghost-btn:hover {
+    background: #242436;
+    border-color: #3A3A50;
 }
 
 .page-content .primary-btn {
     background: linear-gradient(135deg, #6d7cff 0%, #8750d8 100%);
     box-shadow: 0 10px 24px rgba(109, 124, 255, 0.22);
+}
+
+.page-content .primary-btn:hover {
+    box-shadow: 0 14px 30px rgba(109, 124, 255, 0.35);
+    transform: translateY(-1px);
+}
+
+.page-content .primary-btn:active {
+    transform: translateY(0);
 }
 
 .page-content .status.info {
@@ -605,25 +663,34 @@ body.movimientos-page {
 }
 
 .page-content .employee-table thead th {
-    background: #0f172a;
-    color: #fff;
+    background: #0A0A14;
+    color: #d7ddff;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.82rem;
+    padding: 14px 16px;
+    border-bottom: 1px solid #1E1E2A;
 }
 
 .page-content .employee-table tbody td {
     color: #e5e7eb;
-    border-bottom-color: #2f2f2f;
+    border-bottom-color: #1A1A24;
+    padding: 14px 16px;
 }
 
 .page-content .employee-table tbody tr:nth-child(odd) {
-    background: #1b1b1b;
+    background: #0F0F18;
 }
 
 .page-content .employee-table tbody tr:nth-child(even) {
-    background: #202020;
+    background: #12121C;
 }
 
 .page-content .employee-table tbody tr:hover {
-    background: #2a2a2a;
+    background: #1A1A28;
+    transition: background 0.15s ease;
+    cursor: default;
 }
 
 .page-content .empty-state {
@@ -633,29 +700,60 @@ body.movimientos-page {
 .page-content .action-button {
     border-radius: 999px;
     border: 1px solid transparent;
-    padding: 8px 12px;
-    margin-right: 8px;
-    font-weight: 700;
+    padding: 8px 14px;
+    margin-right: 6px;
+    font-weight: 600;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
 }
 
 .page-content .action-view {
-    background: rgba(124, 140, 255, 0.16);
+    background: rgba(124, 140, 255, 0.12);
     color: #d0d6ff;
+    border-color: rgba(124, 140, 255, 0.15);
+}
+
+.page-content .action-view:hover {
+    background: rgba(124, 140, 255, 0.22);
+    border-color: rgba(124, 140, 255, 0.3);
+    transform: translateY(-1px);
 }
 
 .page-content .action-edit {
-    background: rgba(16, 185, 129, 0.16);
+    background: rgba(16, 185, 129, 0.12);
     color: #9ef0c8;
+    border-color: rgba(16, 185, 129, 0.15);
+}
+
+.page-content .action-edit:hover {
+    background: rgba(16, 185, 129, 0.22);
+    border-color: rgba(16, 185, 129, 0.3);
+    transform: translateY(-1px);
 }
 
 .page-content .action-delete {
-    background: rgba(239, 68, 68, 0.16);
+    background: rgba(239, 68, 68, 0.12);
     color: #ffb0b0;
+    border-color: rgba(239, 68, 68, 0.15);
+}
+
+.page-content .action-delete:hover {
+    background: rgba(239, 68, 68, 0.22);
+    border-color: rgba(239, 68, 68, 0.3);
+    transform: translateY(-1px);
 }
 
 .page-content .action-impersonar {
-    background: rgba(168, 85, 247, 0.18);
+    background: rgba(168, 85, 247, 0.14);
     color: #d8b4fe;
+    border-color: rgba(168, 85, 247, 0.15);
+}
+
+.page-content .action-impersonar:hover {
+    background: rgba(168, 85, 247, 0.25);
+    border-color: rgba(168, 85, 247, 0.3);
+    transform: translateY(-1px);
 }
 
 .page-content .delete-modal {
@@ -663,8 +761,14 @@ body.movimientos-page {
 }
 
 .page-content .delete-modal-card {
-    background: #1c1c1c;
-    border: 1px solid #313131;
+    background: #111118;
+    border: 1px solid #1E1E2A;
+    border-radius: 16px;
+    box-shadow: 0 24px 58px rgba(0, 0, 0, 0.5);
+}
+
+.page-content .delete-modal-text {
+    color: #e5e7eb;
 }
 
 .page-content .editar-actions {
@@ -677,22 +781,6 @@ body.movimientos-page {
     margin-bottom: 18px;
 }
 
-.page-content .logout-button {
-    text-align: left;
-}
-
-.error {
-    color: red;
-    font-size: 0.8rem;
-    margin-top: 4px;
-}
-
-.botones {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 24px;
-}
-
 button {
     padding: 10px 24px;
     border: none;
@@ -701,25 +789,7 @@ button {
     cursor: pointer;
 }
 
-#btn-insertar { background: #1a56db; color: white; }
-#btn-insertar:hover { background: #1e429f; }
-#btn-insertar:disabled { background: #9ca3af; }
-#btn-regresar { background: #e5e7eb; color: #374151; }
-#btn-regresar:hover { background: #d1d5db; }
-
-.mensaje { padding: 10px; border-radius: 6px; margin-bottom: 16px; }
-.exito { background: #f0fdf4; color: #16a34a; }
-.error-msg { background: #fef2f2; color: #dc2626; }
-.hidden { display: none; }
-
 /* ==================== EMPLEADOS ==================== */
-body.empleados-page {
-    display: block;
-    min-height: 100vh;
-    background: #242424; /* flat gray to match movimientos page */
-    padding: 0;
-}
-
 .empleados-shell {
     max-width: 1180px;
     margin: 0 auto;
@@ -731,15 +801,6 @@ body.empleados-page {
     align-items: center;
     gap: 16px;
     margin-bottom: 22px;
-}
-
-.eyebrow {
-    margin-bottom: 6px;
-    color: #667eea;
-    font-size: 0.78rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.16em;
 }
 
 .subtitle {
@@ -763,14 +824,6 @@ body.empleados-page {
     color: #667eea;
     text-decoration: none;
     font-weight: 700;
-}
-
-.logout-button {
-    background: transparent;
-    border: 0;
-    padding: 0;
-    cursor: pointer;
-    font: inherit;
 }
 
 .secondary-link:hover {
@@ -868,7 +921,9 @@ body.empleados-page {
     margin-top: 16px;
     padding: 12px 14px;
     border-radius: 12px;
-    font-weight: 600;
+    font-weight: 500;
+    font-size: 0.92rem;
+    border: 1px solid transparent;
 }
 
 .status.info {
@@ -984,39 +1039,62 @@ body.empleados-page {
 }
 
 .detalle-item {
-    background: #f8fafc;
-    border: 1px solid #e5e7eb;
+    background: #0D0D15;
+    border: 1px solid #1E1E2A;
     border-radius: 14px;
-    padding: 14px;
+    padding: 14px 16px;
+    transition: border-color 0.15s ease;
+}
+
+.detalle-item:hover {
+    border-color: #2A2A3A;
 }
 
 .detalle-label {
     display: block;
-    font-size: 0.78rem;
+    font-size: 0.72rem;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: #6b7280;
+    letter-spacing: 0.1em;
+    color: #8B8BA0;
     margin-bottom: 6px;
+    font-weight: 600;
 }
 
 .detalle-valor {
     display: block;
-    color: #111827;
+    color: #f0f2f8;
     font-size: 0.98rem;
-    font-weight: 700;
+    font-weight: 600;
 }
 
 .editar-form {
     margin-top: 18px;
     padding: 16px;
-    border: 1px solid #e5e7eb;
+    border: 1px solid #1E1E2A;
     border-radius: 14px;
-    background: #ffffff;
+    background: #0D0D15;
 }
 
 .editar-form h3 {
     margin: 0 0 12px 0;
-    color: #1f2937;
+    color: #f5f5f5;
+}
+
+.editar-field label {
+    color: #b6bcc8;
+}
+
+.editar-field input,
+.editar-field select {
+    background: #0A0A10;
+    border-color: #2A2A3A;
+    color: #f5f5f5;
+}
+
+.editar-field input:focus,
+.editar-field select:focus {
+    border-color: #7c8cff;
+    box-shadow: 0 0 0 3px rgba(124, 140, 255, 0.16);
 }
 
 .editar-grid {
@@ -1142,7 +1220,7 @@ body.empleados-page {
     justify-content: unset !important;
     align-items: unset !important;
     padding: 0 !important;
-    background: #242424 !important;
+    background: #0A0A10 !important;
 }
 
 body.empleados-page .app-layout {
@@ -1160,4 +1238,201 @@ body.empleados-page .sidebar {
 body.empleados-page .page-content {
     margin-left: 280px !important;
     width: calc(100% - 280px) !important;
+}
+
+/* ==================== BADGES ==================== */
+.badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.badge-event {
+    background: rgba(124, 140, 255, 0.12);
+    color: #c8d0ff;
+    border: 1px solid rgba(124, 140, 255, 0.15);
+}
+
+.badge-login {
+    background: rgba(16, 185, 129, 0.12);
+    color: #9ef0c8;
+    border: 1px solid rgba(16, 185, 129, 0.15);
+}
+
+.badge-error {
+    background: rgba(239, 68, 68, 0.12);
+    color: #ffb0b0;
+    border: 1px solid rgba(239, 68, 68, 0.15);
+}
+
+/* ==================== BITACORA FILTERS ==================== */
+.bitacora-filter-row {
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.bitacora-filter-row select,
+.bitacora-filter-row input[type="datetime-local"],
+.bitacora-filter-row input[type="text"] {
+    background: #0D0D15;
+    color: #f5f5f5;
+    border: 1px solid #2A2A3A;
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 0.95rem;
+    font-family: 'Fira Sans', 'Segoe UI', sans-serif;
+    transition: box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.bitacora-filter-row select {
+    flex: 1;
+    min-width: 160px;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'><path d='M5 7l5 5 5-5' fill='none' stroke='%23b6bcc8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    background-size: 18px;
+    padding-right: 50px;
+    height: 46px;
+}
+
+.bitacora-filter-row select:hover {
+    transform: translateY(-1px);
+}
+
+.bitacora-filter-row select:focus,
+.bitacora-filter-row input:focus {
+    outline: none;
+    border-color: #7c8cff;
+    box-shadow: 0 6px 26px rgba(124, 140, 255, 0.08);
+}
+
+.bitacora-filter-row input[type="datetime-local"] {
+    flex: 1;
+    min-width: 180px;
+}
+
+.bitacora-filter-row input[type="text"] {
+    flex: 0 1 140px;
+}
+
+.bitacora-filter-row select option {
+    background: #171717;
+    color: #f5f5f5;
+}
+
+.bitacora-filter-row input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.8);
+    cursor: pointer;
+    padding: 4px;
+}
+
+.bitacora-filter-row input[type="datetime-local"]::-webkit-datetime-edit {
+    color: #f5f5f5;
+}
+
+.bitacora-filter-row input[type="datetime-local"]::-webkit-datetime-edit-fields-wrapper {
+    color: #f5f5f5;
+}
+
+.bitacora-filter-row input[type="datetime-local"]::-webkit-datetime-edit-text {
+    color: #9ca3af;
+}
+
+.bitacora-filter-row input[type="datetime-local"]::-webkit-datetime-edit-year-field,
+.bitacora-filter-row input[type="datetime-local"]::-webkit-datetime-edit-month-field,
+.bitacora-filter-row input[type="datetime-local"]::-webkit-datetime-edit-day-field,
+.bitacora-filter-row input[type="datetime-local"]::-webkit-datetime-edit-hour-field,
+.bitacora-filter-row input[type="datetime-local"]::-webkit-datetime-edit-minute-field,
+.bitacora-filter-row input[type="datetime-local"]::-webkit-datetime-edit-ampm-field {
+    color: #f5f5f5;
+    background: transparent;
+}
+
+.bitacora-filter-row input[type="datetime-local"]::-webkit-inner-spin-button {
+    filter: invert(0.8);
+    cursor: pointer;
+}
+
+/* ==================== PAGINACION ==================== */
+.pagination-container {
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+}
+
+.pagination-nav {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: #111118;
+    border: 1px solid #1E1E2A;
+    border-radius: 14px;
+    padding: 10px 18px;
+}
+
+.pagination-info {
+    color: #b6bcc8;
+    font-size: 0.92rem;
+    font-weight: 500;
+}
+
+.pagination-nav .ghost-btn {
+    padding: 8px 16px;
+    font-size: 0.85rem;
+}
+
+/* ==================== FOCUS VISIBLE (ACCESIBILIDAD) ==================== */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible {
+    outline: 2px solid #7c8cff;
+    outline-offset: 2px;
+}
+
+.sidebar-btn:focus-visible {
+    outline: 2px solid #7c8cff;
+    outline-offset: 2px;
+}
+
+.employee-table tbody tr:focus-visible {
+    outline: 2px solid #7c8cff;
+    outline-offset: -2px;
+}
+
+/* ==================== PREFERS-REDUCED-MOTION ==================== */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* ==================== SCROLLBAR DARK ==================== */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #0A0A10;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #2A2A3A;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #3A3A50;
 }
