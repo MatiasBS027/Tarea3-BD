@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bitácora de Eventos - Sistema de Planillas</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="empleados-page">
+    <div class="app-layout">
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <span class="sidebar-kicker">Planilla TEC</span>
+                <h2>Bitácora</h2>
+                <p>Registro de eventos del sistema</p>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="/empleados.html" class="sidebar-btn sidebar-btn-ghost">← Volver a empleados</a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <button id="logoutBtn" class="sidebar-btn sidebar-btn-ghost" type="button">Cerrar sesión</button>
+            </div>
+        </aside>
+
+        <main class="page-content empleados-shell">
+            <header class="empleados-header">
+                <div>
+                    <h1>Bitácora de eventos</h1>
+                    <p class="subtitle">Consulta el registro detallado de todas las operaciones del sistema</p>
+                </div>
+            </header>
+
+            <section class="panel filtros-panel">
+                <div class="panel-title">
+                    <h2>Filtrar eventos</h2>
+                    <span id="contador" class="counter">0 registros</span>
+                </div>
+
+                <div class="filter-row bitacora-filter-row">
+                    <select id="filtroTipo">
+                        <option value="">Todos los tipos</option>
+                    </select>
+
+                    <input id="filtroFechaDesde" type="datetime-local" placeholder="Desde">
+
+                    <input id="filtroFechaHasta" type="datetime-local" placeholder="Hasta">
+
+                    <input id="filtroIp" type="text" placeholder="Filtrar por IP">
+
+                    <button id="buscarBtn" class="primary-btn" type="button">Buscar</button>
+                    <button id="limpiarBtn" class="ghost-btn" type="button">Limpiar</button>
+                </div>
+
+                <div id="mensaje" class="status info">
+                    Usa los filtros para restringir la búsqueda.
+                </div>
+            </section>
+
+            <section class="panel table-panel">
+                <table class="employee-table">
+                    <thead>
+                        <tr>
+                            <th>Fecha y hora</th>
+                            <th>Tipo de evento</th>
+                            <th>Usuario</th>
+                            <th>Descripción</th>
+                            <th>IP</th>
+                            <th>ID</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bitacoraBody">
+                        <tr>
+                            <td colspan="6" class="empty-state">Cargando registros...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <div id="paginacion" class="pagination-container"></div>
+        </main>
+    </div>
+
+    <script type="module" src="js/bitacora.js"></script>
+</body>
+</html>
