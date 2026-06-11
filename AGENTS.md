@@ -12,7 +12,8 @@
 - Se parte del modelo de Sebas (su diagrama ER, `ModeloSebas.jpeg` + `ModeloSebas1/2/3.jpeg`) usado como **guía estructural**.
 - Se aplican 8 correcciones justificadas contra `Especificacion.pdf` (ver `SQL/SCRIPTS/Tablas.sql` por tabla y la sección §1.3 aquí para el resumen).
 - Convenciones de Tarea2-BD: `id` en minúscula (PK IDENTITY), tablas `DBError` y `Error` para trazabilidad, `inXxx`/`@outResultCode INT OUTPUT` en SPs, `SET XACT_ABORT ON; SET NOCOUNT ON;` por SP.
-- Convenciones de SSMS en el `.sql`: sin `IF OBJECT_ID` ni `DROP`; `USE [PlanillaDB]` (la base se asume preexistente, se crea con `VaciarDB.sql`).
+- Convenciones de SSMS en `SQL/SCRIPTS/Tablas.sql`: sin `IF OBJECT_ID` ni `DROP` (esquema único, se asume base preexistente creada con `VaciarDB.sql`).
+- Los SPs individuales (`SQL/SPs/*.sql`) SÍ usan `IF OBJECT_ID DROP` porque se deployan incrementalmente.
 - Convenciones Tarea2-BD para `BitacoraEvento`: `IpPostIn` (no `ip`), `PostTime` (no `FechaHora`).
 - El backend de Tarea2-BD (`src/controllers/*.ts`) NO es de este proyecto — no basarse en él.
 
@@ -160,9 +161,18 @@ Cuando el jueves es el **último jueves** del mes calendario:
 ## 4. Arquitectura
 
 - **DB**: SQL Server ≥ 2014, base `PlanillaDB` (se crea con `VaciarDB.sql`, esquema con `Tablas.sql`, trigger con `Trigger.sql`).
-- **Capa lógica**: el código actual en `src/` (Node.js + Express + `mssql`) **es copia literal de Tarea2-BD y no corresponde a este proyecto**. No basarse en él para SPs ni nombres.
-- **Auth**: `Usuario.Tipo='1'` admin, `Tipo='2'` empleado (PDF p.6).
+- **Capa lógica**: `src/` (Node.js + Express + `mssql`). Se adaptó del código de Tarea2-BD pero se reescribió significativamente para este proyecto (SP execution patterns, middleware, validación, etc.).
+- **Auth**: `Usuario.Tipo='1'` admin, `Tipo='2'` empleado (PDF p.6). Middleware en `src/middleware/authMiddleware.ts`.
+- **Validación**: `express-validator` en `src/middleware/validation.ts`. Cada ruta usa `validateXxx` arrays que sanitizan y validan antes de llegar al controller.
 - **Trazabilidad**: cada SP inserta en `BitacoraEvento` dentro de la misma transacción; en `BEGIN CATCH` inserta en `DBError`.
+- **Scripts disponibles**:
+  - `pnpm dev` — hot-reload con `tsx watch`
+  - `pnpm start` — producción (Node + dist/)
+  - `pnpm build` — compila backend
+  - `pnpm build:frontend` — compila frontend (TS → public/js/)
+  - `pnpm build:all` — ambos
+  - `postinstall` — compila automáticamente tras `pnpm install`
+- **Health check**: `GET /health` sin autenticación, devuelve `{ status: "ok", timestamp }`.
 
 ### 4.1 Conexión
 La conexión real está en `src/db/connection.ts` (asume base ya creada y SPs ya desplegados). Credenciales dev-only — rotar antes de producción.
@@ -172,18 +182,19 @@ La conexión real está en `src/db/connection.ts` (asume base ya creada y SPs ya
 ## 5. SPs a implementar (orden sugerido)
 
 1. `sp_Login` / `sp_Logout` (con escritura a `BitacoraEvento`).
-2. `sp_GetEmpleados` / `sp_GetEmpleadoById` (R01/R02).
+2. `sp_GetEmpleados` / `sp_GetEmpleadoById` / `sp_GetEmpleadoByIdInt` (R01/R02).
 3. `sp_InsertarEmpleado` (cuenta el trigger).
 4. `sp_UpdateEmpleado` / `sp_DeleteEmpleado`.
 5. `sp_GetTiposMovimiento` (catálogo).
 6. `sp_GetMovimientos` / `sp_InsertMovimiento` (empleado consulta planilla).
 7. `sp_GetError` (helper).
-8. `sp_CrearCalendario` (genera `Mes` y `Semana` con regla viernes→jueves, cierre último jueves).
-9. `sp_ProcesarAsistencia` (genera hasta 3 `MovHoras` por asistencia + sus `MovPlanilla`).
-10. `sp_ProcesarPlanillaSemanal` (cierre jueves: deducciones, SalarioNeto).
-11. `sp_ProcesarPlanillaMensual` (último jueves: cierre de mes, siguiente ciclo).
-12. `sp_GetPlanillaSemanal` / `sp_GetPlanillaMensual` (R04/R05).
-13. `sp_ImpersonarEmpleado` / `sp_RegresarAdmin` (R03/R06).
+8. `sp_GetBitacora` / `sp_GetTiposEvento` (bitácora de eventos).
+9. `sp_CrearCalendario` (genera `Mes` y `Semana` con regla viernes→jueves, cierre último jueves).
+10. `sp_ProcesarAsistencia` (genera hasta 3 `MovHoras` por asistencia + sus `MovPlanilla`).
+11. `sp_ProcesarPlanillaSemanal` (cierre jueves: deducciones, SalarioNeto).
+12. `sp_ProcesarPlanillaMensual` (último jueves: cierre de mes, siguiente ciclo).
+13. `sp_GetPlanillaSemanal` / `sp_GetPlanillaMensual` (R04/R05).
+14. `sp_ImpersonarEmpleado` / `sp_RegresarAdmin` (R03/R06).
 
 Todos con `SET NOCOUNT ON;` (NO usar `SET XACT_ABORT ON` — combinado con transacciones explícitas produce Msg 3930), `BEGIN TRY / BEGIN CATCH` con `IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION` en el CATCH antes de insertar en DBError, y `INSERT INTO BitacoraEvento ...` para SPs que escriben. SPs de solo lectura (catálogos, GETs) no abren transacción ni escriben bitácora.
 
@@ -194,9 +205,10 @@ Todos con `SET NOCOUNT ON;` (NO usar `SET XACT_ABORT ON` — combinado con trans
 1. **Antes de cambiar esquema**: leer `SQL/SCRIPTS/Tablas.sql` y `SQL/SCRIPTS/Trigger.sql`, y verificar contra el PDF (`Especificacion.pdf`).
 2. **Antes de cambiar SPs**: leer este `AGENTS.md` y verificar el invariante con `DBError`/`Error`/`BitacoraEvento` en `Tablas.sql`.
 3. **No añadir tablas que no estén en este AGENTS.md o el PDF**, a menos que el usuario lo apruebe.
-4. **No usar SQL embebido en TS** (cuando llegue el momento del backend): siempre `pool.request().execute('sp_...')`.
-5. **Cada cambio al esquema** requiere probar con el dataset de ejemplo (seed en `sp_CargarCatalogosXML` + INSERTs de prueba en scripts separados).
-6. **Mapeo XML → BD**: el SP de carga (`sp_CargarCatalogosXML`) es el único punto que lee el XML. Idempotente: `WHERE NOT EXISTS` o `MERGE`.
+4. **No usar SQL embebido en TS**: siempre `pool.request().execute('sp_...')`.
+5. **Validación de entrada**: usar arrays de `validateXxx` en `src/middleware/validation.ts` por ruta. No repetir validación manual en controllers.
+6. **Cada cambio al esquema** requiere probar con el dataset de ejemplo (seed en `sp_CargarCatalogosXML` + INSERTs de prueba en scripts separados).
+7. **Mapeo XML → BD**: el SP de carga (`sp_CargarCatalogosXML`) es el único punto que lee el XML. Idempotente: `WHERE NOT EXISTS` o `MERGE`.
 
 ---
 

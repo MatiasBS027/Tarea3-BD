@@ -1,0 +1,11 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const bitacoraController_1 = require("../controllers/bitacoraController");
+const authMiddleware_1 = require("../middleware/authMiddleware");
+const validation_1 = require("../middleware/validation");
+const router = (0, express_1.Router)();
+router.use(authMiddleware_1.requireAdmin);
+router.get('/tipos-evento', bitacoraController_1.getTiposEvento);
+router.get('/', validation_1.validateGetBitacora, bitacoraController_1.getBitacora);
+exports.default = router;

@@ -70,11 +70,13 @@ class BitacoraPage {
         this.setEstado('Cargando bitácora...', 'info');
         this.buscarBtn.disabled = true;
         try {
+            const token = localStorage.getItem('authToken') || '';
+            const headers = {};
+            if (token)
+                headers['Authorization'] = 'Bearer ' + token;
             const response = await fetch(`/api/bitacora?${params.toString()}`, {
                 method: 'GET',
-                headers: {
-                    'x-username': localStorage.getItem('username') || '',
-                },
+                headers,
             });
             const payload = await response.json();
             if (!response.ok || !payload.success) {

@@ -78,56 +78,6 @@
                 </div>
                 <div id="detalleEstado" class="status info">Selecciona un empleado para ver su detalle.</div>
                 <div id="detalleContenido" class="detalle-contenido"></div>
-
-                <form id="editarForm" class="editar-form hidden">
-                    <h3>Editar empleado</h3>
-
-                    <div class="editar-grid">
-                        <div class="editar-field">
-                            <label for="documentoDespues">Documento (después)</label>
-                            <input id="documentoDespues" type="text" required minlength="3" maxlength="32" pattern="[0-9]+">
-                        </div>
-
-                        <div class="editar-field">
-                            <label for="nombreDespues">Nombre (después)</label>
-                            <input id="nombreDespues" type="text" required minlength="3" maxlength="128">
-                        </div>
-
-                        <div class="editar-field">
-                            <label for="idPuestoDespues">Puesto (después)</label>
-                            <select id="idPuestoDespues" required>
-                                <option value="">Cargando puestos...</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="editar-actions">
-                        <button type="submit" class="primary-btn">Guardar cambios</button>
-                        <button id="cancelarEdicionBtn" type="button" class="ghost-btn">Cancelar</button>
-                    </div>
-                </form>
-            </section>
-
-            <section id="deleteModal" class="delete-modal hidden" role="dialog" aria-modal="true" aria-labelledby="deleteModalTitle">
-                <div class="delete-modal-card">
-                    <div class="panel-title">
-                        <h2 id="deleteModalTitle">Confirmar borrado lógico</h2>
-                        <button id="closeDeleteModalBtn" type="button" class="ghost-btn">X</button>
-                    </div>
-
-                    <p id="deleteDocumentoTexto" class="delete-modal-text">
-                        ¿Deseas eliminar lógicamente este empleado?
-                    </p>
-
-                    <div id="deleteModalEstado" class="status info">
-                        Puedes confirmar el borrado o cancelar la acción.
-                    </div>
-
-                    <div class="editar-actions">
-                        <button id="confirmDeleteBtn" type="button" class="primary-btn">Confirmar borrado</button>
-                        <button id="cancelDeleteBtn" type="button" class="ghost-btn">Cancelar</button>
-                    </div>
-                </div>
             </section>
         </main>
     </div>

@@ -93,16 +93,16 @@ class EmpleadoViewPage {
         }
     }
     async regresarAdmin() {
-        const username = localStorage.getItem('username') || '';
+        const token = localStorage.getItem('authToken') || '';
+        const headers = { 'Content-Type': 'application/json' };
+        if (token)
+            headers['Authorization'] = 'Bearer ' + token;
         this.btnRegresarAdmin.disabled = true;
         this.btnRegresarAdmin.textContent = 'Regresando...';
         try {
             const response = await fetch('/api/empleados/regresar-admin', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-username': username,
-                },
+                headers,
             });
             const payload = await response.json();
             if (!response.ok || !payload.success) {

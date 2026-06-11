@@ -27,6 +27,8 @@ export function formatearFechaHora(valor) {
 export function logout() {
     localStorage.removeItem('authToken');
     localStorage.removeItem('username');
+    localStorage.removeItem('userTipo');
+    localStorage.removeItem('userId');
     localStorage.removeItem('empleadoImpersonadoId');
     localStorage.removeItem('empleadoImpersonadoDoc');
     localStorage.removeItem('ultimoDocumentoEmpleado');
