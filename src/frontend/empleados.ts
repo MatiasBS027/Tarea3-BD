@@ -1,13 +1,15 @@
 /**
 * empleados.ts
-* Lógica de la pantalla de empleados.
-* 
+* Logica de la pantalla de empleados.
+*
 * Este archivo solo se encarga de la interfaz del navegador:
 * - leer el filtro
 * - llamar al backend
 * - pintar la tabla
 * - mostrar mensajes de estado
 */
+
+import { setEstado as setEstadoEl, logout } from './utils.js';
 
 type Empleado = {
     Nombre: string;
@@ -183,10 +185,7 @@ class EmpleadosPage {
 
         if (this.logoutBtn) {
             this.logoutBtn.addEventListener('click', () => {
-                localStorage.removeItem('authToken');
-                localStorage.removeItem('username');
-                localStorage.removeItem('ultimoDocumentoEmpleado');
-                window.location.href = '/login.html';
+                logout();
             });
         }
 
@@ -751,8 +750,7 @@ class EmpleadosPage {
     }
 
     private setEstado(texto: string, tipo: 'info' | 'success' | 'warning' | 'error'): void {
-        this.mensajeDiv.textContent = texto;
-        this.mensajeDiv.className = `status ${tipo}`;
+        setEstadoEl(this.mensajeDiv, texto, tipo);
     }
 
     private setBotones(habilitado: boolean): void {

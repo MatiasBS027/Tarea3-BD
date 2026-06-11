@@ -1,3 +1,5 @@
+import { formatearFecha, logout } from './utils.js';
+
 type EmpleadoPlanilla = {
     id: number;
     Nombre: string;
@@ -37,6 +39,12 @@ class EmpleadoViewPage {
         this.btnRegresarAdmin = document.getElementById('btnRegresarAdmin') as HTMLButtonElement;
         this.logoutBtn = document.getElementById('logoutBtn') as HTMLButtonElement;
 
+        // R06: el boton de regresar solo se muestra cuando el admin esta impersonando
+        const esImpersonacion = !!localStorage.getItem('empleadoImpersonadoId');
+        if (this.btnRegresarAdmin) {
+            this.btnRegresarAdmin.style.display = esImpersonacion ? '' : 'none';
+        }
+
         this.bindEvents();
         void this.cargarEmpleado();
     }
@@ -47,11 +55,7 @@ class EmpleadoViewPage {
         });
 
         this.logoutBtn.addEventListener('click', () => {
-            localStorage.removeItem('authToken');
-            localStorage.removeItem('username');
-            localStorage.removeItem('empleadoImpersonadoId');
-            localStorage.removeItem('empleadoImpersonadoDoc');
-            window.location.href = '/login.html';
+            logout();
         });
     }
 
@@ -90,16 +94,7 @@ class EmpleadoViewPage {
 
             let fechaContratacion = '';
             if (emp.FechaContratacion) {
-                try {
-                    const d = new Date(emp.FechaContratacion);
-                    if (!isNaN(d.getTime())) {
-                        fechaContratacion = d.toLocaleDateString('es-ES');
-                    } else {
-                        fechaContratacion = emp.FechaContratacion;
-                    }
-                } catch {
-                    fechaContratacion = emp.FechaContratacion;
-                }
+                fechaContratacion = formatearFecha(emp.FechaContratacion);
             }
 
             this.detalleEmpleado.innerHTML = `

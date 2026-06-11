@@ -1,24 +1,13 @@
-/**
-* AuthService.ts
-* Servicio para comunicarse con el backend de autenticación
-*
-* Este archivo contiene la lógica de AJAX/fetch que envía datos
-* al servidor y recibe respuestas.
-*/
-/**
-* Clase AuthService
-* Maneja todas las comunicaciones con el backend de autenticación
-*/
 export class AuthService {
     constructor() {
-        this.baseUrl = '/api/auth'; // Ruta base de la API
+        this.baseUrl = '/api/auth';
     }
     buildFallbackResponse(status) {
         if (status === 401) {
             return {
                 success: false,
                 outResultCode: 50001,
-                message: 'Usuario o contraseña inválidos.',
+                message: 'Usuario o contrasena invalidos.',
             };
         }
         if (status === 403) {
@@ -32,35 +21,25 @@ export class AuthService {
             return {
                 success: false,
                 outResultCode: 50008,
-                message: 'Error interno del servidor. Intenta más tarde.',
+                message: 'Error interno del servidor. Intenta mas tarde.',
             };
         }
         return {
             success: false,
             outResultCode: 50008,
-            message: 'No se pudo completar la autenticación.',
+            message: 'No se pudo completar la autenticacion.',
         };
     }
-    /**
-    * Envía credenciales al servidor para autenticación
-    *
-    * @param username - Nombre de usuario
-    * @param password - Contraseña
-    * @returns Promesa con la respuesta del servidor
-    */
     async login(username, password) {
         try {
-            // Preparar el objeto con los datos del login
             const loginData = { username, password };
-            // Hacer petición POST al endpoint /api/auth/login
             const response = await fetch(`${this.baseUrl}/login`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json', // Indicar que enviamos JSON
+                    'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(loginData), // Convertir objeto a JSON
+                body: JSON.stringify(loginData),
             });
-            // Parsear respuesta JSON (si existe)
             let data = null;
             try {
                 data = (await response.json());
@@ -68,52 +47,28 @@ export class AuthService {
             catch {
                 data = null;
             }
-            // Si backend respondió error HTTP, devolver error específico
             if (!response.ok) {
                 if (data && typeof data.outResultCode === 'number') {
                     return data;
                 }
                 return this.buildFallbackResponse(response.status);
             }
-            // Éxito HTTP pero payload vacío o inválido
             if (!data) {
                 return {
                     success: false,
                     outResultCode: 50008,
-                    message: 'Respuesta inválida del servidor.',
+                    message: 'Respuesta invalida del servidor.',
                 };
             }
             return data;
         }
         catch (error) {
-            // Si hay error de red (fetch falla), devolver error de conectividad
             console.error('Error en login:', error);
             return {
                 success: false,
-                outResultCode: 50008, // Código de error genérico
-                message: 'Error de conexión con el servidor. Intenta de nuevo.',
+                outResultCode: 50008,
+                message: 'Error de conexion con el servidor. Intenta de nuevo.',
             };
-        }
-    }
-    /**
-     * Cerrar sesión
-     *
-     * @param token - Token de sesión
-     */
-    async logout(token) {
-        try {
-            const response = await fetch(`${this.baseUrl}/logout`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`, // Enviar token en header
-                },
-            });
-            return response.ok;
-        }
-        catch (error) {
-            console.error('Error en logout:', error);
-            return false;
         }
     }
 }

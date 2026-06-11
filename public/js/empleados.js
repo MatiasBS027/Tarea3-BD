@@ -1,7 +1,6 @@
-"use strict";
 /**
 * empleados.ts
-* Lógica de la pantalla de empleados.
+* Logica de la pantalla de empleados.
 *
 * Este archivo solo se encarga de la interfaz del navegador:
 * - leer el filtro
@@ -9,6 +8,7 @@
 * - pintar la tabla
 * - mostrar mensajes de estado
 */
+import { setEstado as setEstadoEl, logout } from './utils.js';
 class EmpleadosPage {
     constructor() {
         this.detalleActual = null;
@@ -114,10 +114,7 @@ class EmpleadosPage {
         }
         if (this.logoutBtn) {
             this.logoutBtn.addEventListener('click', () => {
-                localStorage.removeItem('authToken');
-                localStorage.removeItem('username');
-                localStorage.removeItem('ultimoDocumentoEmpleado');
-                window.location.href = '/login.html';
+                logout();
             });
         }
         if (this.closeInsertModalBtn) {
@@ -585,8 +582,7 @@ class EmpleadosPage {
         }
     }
     setEstado(texto, tipo) {
-        this.mensajeDiv.textContent = texto;
-        this.mensajeDiv.className = `status ${tipo}`;
+        setEstadoEl(this.mensajeDiv, texto, tipo);
     }
     setBotones(habilitado) {
         this.buscarBtn.disabled = !habilitado;

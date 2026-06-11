@@ -1,9 +1,8 @@
 import { Router } from 'express';
-import { getPuestos } from '../controllers/empleadoController';
+import { getPuestos } from '../controllers/puestoController';
 
 const router = Router();
 
-// GET /api/puestos -> lista los puestos disponibles para el select de edición.
 router.get('/', getPuestos);
 
 export default router;

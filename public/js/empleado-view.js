@@ -1,4 +1,4 @@
-"use strict";
+import { formatearFecha, logout } from './utils.js';
 class EmpleadoViewPage {
     constructor() {
         const params = new URLSearchParams(window.location.search);
@@ -13,6 +13,11 @@ class EmpleadoViewPage {
         this.mensualEstado = document.getElementById('mensualEstado');
         this.btnRegresarAdmin = document.getElementById('btnRegresarAdmin');
         this.logoutBtn = document.getElementById('logoutBtn');
+        // R06: el boton de regresar solo se muestra cuando el admin esta impersonando
+        const esImpersonacion = !!localStorage.getItem('empleadoImpersonadoId');
+        if (this.btnRegresarAdmin) {
+            this.btnRegresarAdmin.style.display = esImpersonacion ? '' : 'none';
+        }
         this.bindEvents();
         void this.cargarEmpleado();
     }
@@ -21,11 +26,7 @@ class EmpleadoViewPage {
             void this.regresarAdmin();
         });
         this.logoutBtn.addEventListener('click', () => {
-            localStorage.removeItem('authToken');
-            localStorage.removeItem('username');
-            localStorage.removeItem('empleadoImpersonadoId');
-            localStorage.removeItem('empleadoImpersonadoDoc');
-            window.location.href = '/login.html';
+            logout();
         });
     }
     async cargarEmpleado() {
@@ -52,18 +53,7 @@ class EmpleadoViewPage {
             this.sidebarPuesto.textContent = emp.NombrePuesto;
             let fechaContratacion = '';
             if (emp.FechaContratacion) {
-                try {
-                    const d = new Date(emp.FechaContratacion);
-                    if (!isNaN(d.getTime())) {
-                        fechaContratacion = d.toLocaleDateString('es-ES');
-                    }
-                    else {
-                        fechaContratacion = emp.FechaContratacion;
-                    }
-                }
-                catch {
-                    fechaContratacion = emp.FechaContratacion;
-                }
+                fechaContratacion = formatearFecha(emp.FechaContratacion);
             }
             this.detalleEmpleado.innerHTML = `
                 <div class="detalle-grid">

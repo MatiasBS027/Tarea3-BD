@@ -16,7 +16,7 @@
             </div>
 
             <nav class="sidebar-nav">
-                <button id="btnInsertar" class="sidebar-btn sidebar-btn-primary" type="button">Insertar empleado</button>
+                <a href="/bitacora.html" class="sidebar-btn sidebar-btn-ghost" style="text-align:center;">Ver bitácora</a>
             </nav>
 
             <div class="sidebar-footer">
@@ -51,39 +51,6 @@
 
                 <div id="mensaje" class="status info">
                     Deja el filtro vacío para ver todos los empleados.
-                </div>
-            </section>
-
-            <section id="insertModal" class="delete-modal hidden" role="dialog" aria-modal="true" aria-labelledby="insertModalTitle">
-                <div class="delete-modal-card">
-                    <div class="panel-title">
-                        <h2 id="insertModalTitle">Insertar nuevo empleado</h2>
-                        <button id="closeInsertModalBtn" type="button" class="ghost-btn">X</button>
-                    </div>
-
-                    <form id="insertForm" class="editar-form">
-                        <div class="editar-grid">
-                            <div class="editar-field">
-                                <label for="insertDocumento">Documento</label>
-                                <input id="insertDocumento" type="text" required pattern="[0-9]+" minlength="3" maxlength="32">
-                            </div>
-                            <div class="editar-field">
-                                <label for="insertNombre">Nombre</label>
-                                <input id="insertNombre" type="text" required minlength="3" maxlength="128">
-                            </div>
-                            <div class="editar-field">
-                                <label for="insertPuesto">Puesto</label>
-                                <select id="insertPuesto" required>
-                                    <option value="">Cargando puestos...</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="editar-actions">
-                            <button type="submit" class="primary-btn">Crear empleado</button>
-                            <button id="cancelInsertBtn" type="button" class="ghost-btn">Cancelar</button>
-                        </div>
-                    </form>
                 </div>
             </section>
 
