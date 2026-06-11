@@ -1,6 +1,7 @@
 import express from 'express';
 import path from 'path';
 import { getPool } from './db/connection';
+import { authenticate } from './middleware/authMiddleware';
 import empleadosRouter from './routes/empleados';
 import authRouter from './routes/auth';
 import puestosRouter from './routes/puestos';
@@ -10,20 +11,24 @@ import bitacoraRouter from './routes/bitacora';
 const app = express();
 const PORT = 3000;
 
-// Middlewares
 app.use(express.json());
 
-// Servir archivos estaticos del frontend
 app.use(express.static(path.join(__dirname, '../public')));
 
-// Rutas API
-app.use('/api/auth', authRouter);
-app.use('/api/empleados', empleadosRouter);
-app.use('/api/puestos', puestosRouter);
-app.use('/api/tiposMovimiento', tiposMovimientoRouter);
-app.use('/api/bitacora', bitacoraRouter);
+// Health check (no requiere auth)
+app.get('/health', (_req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
 
-// Iniciar servidor
+// Auth routes (login no requiere token)
+app.use('/api/auth', authRouter);
+
+// Rutas protegidas — requieren token valido
+app.use('/api/empleados', authenticate, empleadosRouter);
+app.use('/api/puestos', authenticate, puestosRouter);
+app.use('/api/tiposMovimiento', authenticate, tiposMovimientoRouter);
+app.use('/api/bitacora', authenticate, bitacoraRouter);
+
 async function startServer(): Promise<void> {
     try {
         await getPool();

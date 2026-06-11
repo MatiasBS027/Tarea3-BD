@@ -83,13 +83,15 @@ private async handleSubmit(e: Event): Promise<void> {
 
     // Verificar la respuesta
     if (response.success && response.outResultCode === 0) {
-    //  LOGIN EXITOSO
+                //  LOGIN EXITOSO
     this.showMessage('¡Bienvenido! Redirigiendo...', 'success');
 
-    // Guardar el token en localStorage para sesiones futuras
+    // Guardar el token y datos de sesion en localStorage
     if (response.token) {
         localStorage.setItem('authToken', response.token);
         localStorage.setItem('username', username);
+        localStorage.setItem('userTipo', response.usuario?.tipo ?? '2');
+        localStorage.setItem('userId', String(response.usuario?.id ?? ''));
     }
 
     // Redirigir a la página principal de empleados después de 1 segundo

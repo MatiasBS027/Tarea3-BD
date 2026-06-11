@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { getPool, sql } from '../db/connection';
 import { getErrorMessage } from '../utils/errorhelper';
-import { resolveUsuarioId } from './usuarioHelper';
+import { AuthenticatedRequest } from '../middleware/authMiddleware';
 
 interface LoginResponse {
     success: boolean;
@@ -11,6 +11,7 @@ interface LoginResponse {
     usuario?: {
         id: number;
         username: string;
+        tipo: string;
     };
 }
 
@@ -20,119 +21,90 @@ export class AuthController {
             const { username, password } = req.body;
 
             if (!username || !password) {
-                const response: LoginResponse = {
+                res.status(400).json({
                     success: false,
                     outResultCode: 50000,
                     message: 'Usuario y contrasena son requeridos',
-                };
-
-                res.status(400).json(response);
+                } as LoginResponse);
                 return;
             }
 
             const pool = await getPool();
-            const ipPostIn = req.ip ?? '';
-            const postTime = new Date();
 
             const result = await pool
                 .request()
                 .input('inUsername', sql.VarChar(128), String(username))
                 .input('inPassword', sql.VarChar(128), String(password))
-                .input('inIpPostIn', sql.VarChar(64), ipPostIn)
-                .input('inPostTime', sql.DateTime, postTime)
+                .input('inIpPostIn', sql.VarChar(64), req.ip ?? '')
+                .input('inPostTime', sql.DateTime, new Date())
                 .output('outResultCode', sql.Int)
+                .output('outIdUsuario', sql.Int)
+                .output('outTipo', sql.VarChar(2))
                 .execute('sp_Login');
 
             const outResultCode = Number(result.output.outResultCode ?? 50008);
 
             if (outResultCode === 0) {
-                const idUsuario = await resolveUsuarioId(pool, String(username));
-                const token = this.generateToken(String(username));
+                const idUsuario = result.output.outIdUsuario;
+                const tipo = String(result.output.outTipo ?? '2');
+                const token = this.generateToken(String(username), Number(idUsuario), tipo);
 
-                const response: LoginResponse = {
+                res.status(200).json({
                     success: true,
                     outResultCode: 0,
                     message: 'Autenticacion exitosa',
                     token,
                     usuario: {
-                        id: idUsuario ?? 0,
+                        id: Number(idUsuario),
                         username: String(username),
+                        tipo,
                     },
-                };
-
-                res.status(200).json(response);
+                } as LoginResponse);
                 return;
             }
 
             const message = await getErrorMessage(outResultCode);
 
             if (outResultCode === 50003) {
-                const response: LoginResponse = {
+                res.status(403).json({
                     success: false,
                     outResultCode,
                     message,
-                };
-
-                res.status(403).json(response);
+                } as LoginResponse);
                 return;
             }
 
-            const response: LoginResponse = {
+            res.status(outResultCode === 50008 ? 500 : 401).json({
                 success: false,
                 outResultCode,
                 message,
-            };
-
-            res.status(outResultCode === 50008 ? 500 : 401).json(response);
+            } as LoginResponse);
         } catch (error) {
             console.error('Error en login:', error);
-            const response: LoginResponse = {
+            res.status(500).json({
                 success: false,
                 outResultCode: 50008,
                 message: 'Error interno del servidor',
-            };
-
-            res.status(500).json(response);
+            } as LoginResponse);
         }
     }
 
     async logout(req: Request, res: Response): Promise<void> {
         try {
-            const authorization = String(req.headers.authorization ?? '');
-            const token = authorization.startsWith('Bearer ') ? authorization.slice(7).trim() : '';
-
-            if (!token) {
-                res.status(400).json({
+            const user = (req as AuthenticatedRequest).user;
+            if (!user) {
+                res.status(401).json({
                     success: false,
-                    message: 'Token de sesion requerido',
-                });
-                return;
-            }
-
-            const username = this.decodeUsernameFromToken(token);
-
-            if (!username) {
-                res.status(400).json({
-                    success: false,
-                    message: 'Token de sesion invalido',
+                    message: 'No autenticado',
                 });
                 return;
             }
 
             const pool = await getPool();
-            const idUsuario = await resolveUsuarioId(pool, username);
-
-            if (!idUsuario) {
-                res.status(400).json({
-                    success: false,
-                    message: 'Usuario de sesion no encontrado',
-                });
-                return;
-            }
 
             const result = await pool
                 .request()
-                .input('inIdUsuario', sql.Int, idUsuario)
+                .input('inIdUsuario', sql.Int, user.id)
                 .input('inIpPostIn', sql.VarChar(64), req.ip ?? '')
                 .input('inPostTime', sql.DateTime, new Date())
                 .output('outResultCode', sql.Int)
@@ -162,27 +134,14 @@ export class AuthController {
         }
     }
 
-    private generateToken(username: string): string {
+    private generateToken(username: string, id: number, tipo: string): string {
         const payload = {
+            id,
             username,
+            tipo,
             iat: Date.now(),
             exp: Date.now() + 24 * 60 * 60 * 1000,
         };
         return Buffer.from(JSON.stringify(payload)).toString('base64');
-    }
-
-    private decodeUsernameFromToken(token: string): string | null {
-        try {
-            const payloadText = Buffer.from(token, 'base64').toString('utf8');
-            const payload = JSON.parse(payloadText) as { username?: unknown };
-
-            if (typeof payload.username !== 'string' || !payload.username.trim()) {
-                return null;
-            }
-
-            return payload.username.trim();
-        } catch {
-            return null;
-        }
     }
 }

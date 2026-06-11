@@ -2,13 +2,15 @@
   "name": "tarea3-bd",
   "version": "1.0.0",
   "description": "ITCR | Escuela de Ingenieria en Computacion | Base de Datos 1",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
     "build:frontend": "tsc --project tsconfigFronted.json",
-    "dev": "ts-node src/index.ts",
+    "build:all": "tsc && tsc --project tsconfigFronted.json",
+    "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "postinstall": "tsc && tsc --project tsconfigFronted.json",
+    "test": "echo \"No tests configured. See AGENTS.md for SP test commands.\""
   },
   "repository": {
     "type": "git",
@@ -24,6 +26,7 @@
   "homepage": "https://github.com/MatiasBS027/Tarea3-BD#readme",
   "dependencies": {
     "express": "^5.2.1",
+    "express-validator": "^7.3.2",
     "mssql": "^12.2.1"
   },
   "devDependencies": {
@@ -31,6 +34,7 @@
     "@types/mssql": "^9.1.9",
     "@types/node": "^25.5.0",
     "ts-node": "^10.9.2",
+    "tsx": "^4.22.4",
     "typescript": "^5.9.3"
   }
 }

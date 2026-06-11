@@ -136,7 +136,9 @@ class EmpleadoViewPage {
     }
 
     private async regresarAdmin(): Promise<void> {
-        const username = localStorage.getItem('username') || '';
+        const token = localStorage.getItem('authToken') || '';
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = 'Bearer ' + token;
 
         this.btnRegresarAdmin.disabled = true;
         this.btnRegresarAdmin.textContent = 'Regresando...';
@@ -144,10 +146,7 @@ class EmpleadoViewPage {
         try {
             const response = await fetch('/api/empleados/regresar-admin', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-username': username,
-                },
+                headers,
             });
 
             const payload = await response.json() as {

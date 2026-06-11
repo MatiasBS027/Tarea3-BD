@@ -110,11 +110,13 @@ class BitacoraPage {
         this.buscarBtn.disabled = true;
 
         try {
+            const token = localStorage.getItem('authToken') || '';
+            const headers: Record<string, string> = {};
+            if (token) headers['Authorization'] = 'Bearer ' + token;
+
             const response = await fetch(`/api/bitacora?${params.toString()}`, {
                 method: 'GET',
-                headers: {
-                    'x-username': localStorage.getItem('username') || '',
-                },
+                headers,
             });
 
             const payload = await response.json() as BitacoraResponse;

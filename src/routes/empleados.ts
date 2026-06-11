@@ -1,21 +1,25 @@
 import { Router } from 'express';
-import { getEmpleados, getEmpleadoById, getEmpleadoByIdInt, impersonarEmpleado, regresarAdmin } from '../controllers/empleadoController';
+import {
+    getEmpleados, getEmpleadoById, getEmpleadoByIdInt,
+    impersonarEmpleado, regresarAdmin
+} from '../controllers/empleadoController';
+import { requireAdmin } from '../middleware/authMiddleware';
+import {
+    validateGetEmpleados,
+    validateGetEmpleadoByDoc,
+    validateImpersonar,
+    validateGetEmpleadoByIdInt,
+} from '../middleware/validation';
 
 const router = Router();
 
-// GET  /api/empleados -> llama a getEmpleados
-router.get('/', getEmpleados);
+// Todas las rutas de empleados requieren ser admin
+router.use(requireAdmin);
 
-// POST /api/empleados/impersonar -> impersonar un empleado (R03)
-router.post('/impersonar', impersonarEmpleado);
-
-// POST /api/empleados/regresar-admin -> volver a admin (R06)
+router.get('/', validateGetEmpleados, getEmpleados);
+router.post('/impersonar', validateImpersonar, impersonarEmpleado);
 router.post('/regresar-admin', regresarAdmin);
-
-// GET /api/empleados/by-id/:id -> buscar empleado por id INT (vista impersonacion)
-router.get('/by-id/:id', getEmpleadoByIdInt);
-
-// GET  /api/empleados/:valorDocumentoIdentidad -> consulta un empleado
-router.get('/:valorDocumentoIdentidad', getEmpleadoById);
+router.get('/by-id/:id', validateGetEmpleadoByIdInt, getEmpleadoByIdInt);
+router.get('/:valorDocumentoIdentidad', validateGetEmpleadoByDoc, getEmpleadoById);
 
 export default router;

@@ -11,6 +11,7 @@ interface LoginResponse {
     usuario?: {
         id: number;
         username: string;
+        tipo: string;
     };
 }
 

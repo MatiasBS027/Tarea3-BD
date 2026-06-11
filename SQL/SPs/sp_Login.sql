@@ -13,7 +13,9 @@ CREATE PROCEDURE [dbo].[sp_Login]
     @inPassword VARCHAR(128),
     @inIpPostIn VARCHAR(64),
     @inPostTime DATETIME,
-    @outResultCode INT OUTPUT
+    @outResultCode INT OUTPUT,
+    @outIdUsuario INT OUTPUT,
+    @outTipo VARCHAR(2) OUTPUT
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -22,6 +24,7 @@ BEGIN
 
     DECLARE @idUsuario INT,
         @password VARCHAR(128),
+        @tipo VARCHAR(2),
         @idEventoSuccess INT,
         @idEventoFail INT,
         @idEventoDisabled INT,
@@ -50,7 +53,7 @@ BEGIN
         FROM dbo.TipoEvento t
         WHERE t.Nombre = 'Login deshabilitado';
 
-        SELECT @idUsuario = u.id, @password = u.PasswordHash
+        SELECT @idUsuario = u.id, @password = u.PasswordHash, @tipo = u.Tipo
         FROM dbo.Usuario u
         WHERE u.Username = @inUsername;
 
@@ -146,6 +149,8 @@ BEGIN
         COMMIT TRANSACTION;
 
         SET @outResultCode = 0;
+        SET @outIdUsuario = @idUsuario;
+        SET @outTipo = @tipo;
 
     END TRY
     BEGIN CATCH

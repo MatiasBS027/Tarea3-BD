@@ -1,10 +1,9 @@
 import { Request, Response } from 'express';
 import { getPool, sql } from '../db/connection';
 import { getErrorMessage } from '../utils/errorhelper';
-import { resolveUsuarioId } from './usuarioHelper';
+import { AuthenticatedRequest } from '../middleware/authMiddleware';
 
 // GET /api/empleados
-// Invoca sp_GetEmpleados y retorna el listado filtrado
 export async function getEmpleados(req: Request, res: Response): Promise<void> {
     try {
         const filtro = String(req.query.filtro ?? '').trim();
@@ -44,7 +43,6 @@ export async function getEmpleados(req: Request, res: Response): Promise<void> {
 }
 
 // GET /api/empleados/:valorDocumentoIdentidad
-// Invoca sp_GetEmpleadoById y retorna un empleado activo.
 export async function getEmpleadoById(req: Request, res: Response): Promise<void> {
     try {
         const valorDocumentoIdentidad = String(req.params.valorDocumentoIdentidad ?? '').trim();
@@ -61,7 +59,7 @@ export async function getEmpleadoById(req: Request, res: Response): Promise<void
 
         const result = await pool
             .request()
-                .input('inValorDocumento', sql.VarChar(32), valorDocumentoIdentidad)
+            .input('inValorDocumento', sql.VarChar(32), valorDocumentoIdentidad)
             .output('outResultCode', sql.Int)
             .execute('sp_GetEmpleadoById');
 
@@ -92,9 +90,14 @@ export async function getEmpleadoById(req: Request, res: Response): Promise<void
 }
 
 // POST /api/empleados/impersonar
-// Invoca sp_ImpersonarEmpleado para que un admin acceda como empleado.
 export async function impersonarEmpleado(req: Request, res: Response): Promise<void> {
     try {
+        const user = (req as AuthenticatedRequest).user;
+        if (!user) {
+            res.status(401).json({ success: false, message: 'No autenticado' });
+            return;
+        }
+
         const { valorDocumento } = req.body;
 
         if (!valorDocumento) {
@@ -106,23 +109,12 @@ export async function impersonarEmpleado(req: Request, res: Response): Promise<v
             return;
         }
 
-        const username = String(req.headers['x-username'] ?? '');
         const pool = await getPool();
-        const idUsuarioAdmin = await resolveUsuarioId(pool, username);
-
-        if (!idUsuarioAdmin) {
-            res.status(400).json({
-                success: false,
-                outResultCode: 50001,
-                message: await getErrorMessage(50001)
-            });
-            return;
-        }
 
         const result = await pool
             .request()
             .input('inValorDocumento', sql.VarChar(32), String(valorDocumento))
-            .input('inIdUsuarioAdmin', sql.Int, idUsuarioAdmin)
+            .input('inIdUsuarioAdmin', sql.Int, user.id)
             .input('inIpPostIn', sql.VarChar(64), req.ip ?? '')
             .input('inPostTime', sql.DateTime, new Date())
             .output('outIdEmpleado', sql.Int)
@@ -157,25 +149,19 @@ export async function impersonarEmpleado(req: Request, res: Response): Promise<v
 }
 
 // POST /api/empleados/regresar-admin
-// Invoca sp_RegresarAdmin para volver a la interfaz de administrador.
 export async function regresarAdmin(req: Request, res: Response): Promise<void> {
     try {
-        const username = String(req.headers['x-username'] ?? '');
-        const pool = await getPool();
-        const idUsuarioAdmin = await resolveUsuarioId(pool, username);
-
-        if (!idUsuarioAdmin) {
-            res.status(400).json({
-                success: false,
-                outResultCode: 50001,
-                message: await getErrorMessage(50001)
-            });
+        const user = (req as AuthenticatedRequest).user;
+        if (!user) {
+            res.status(401).json({ success: false, message: 'No autenticado' });
             return;
         }
 
+        const pool = await getPool();
+
         const result = await pool
             .request()
-            .input('inIdUsuarioAdmin', sql.Int, idUsuarioAdmin)
+            .input('inIdUsuarioAdmin', sql.Int, user.id)
             .input('inIpPostIn', sql.VarChar(64), req.ip ?? '')
             .input('inPostTime', sql.DateTime, new Date())
             .output('outResultCode', sql.Int)
@@ -208,18 +194,9 @@ export async function regresarAdmin(req: Request, res: Response): Promise<void> 
 }
 
 // GET /api/empleados/by-id/:id
-// Busca un empleado por id INT (para la vista de impersonacion).
 export async function getEmpleadoByIdInt(req: Request, res: Response): Promise<void> {
     try {
         const id = Number(req.params.id);
-
-        if (!id || Number.isNaN(id)) {
-            res.status(400).json({
-                success: false,
-                message: 'id es requerido y debe ser un numero'
-            });
-            return;
-        }
 
         const pool = await getPool();
 
@@ -232,7 +209,10 @@ export async function getEmpleadoByIdInt(req: Request, res: Response): Promise<v
         const outResultCode: number = result.output.outResultCode;
 
         if (outResultCode !== 0) {
-            res.status(500).json({
+            const status = outResultCode === 50012 ? 404
+                : outResultCode === 50008 ? 500
+                : 400;
+            res.status(status).json({
                 success: false,
                 outResultCode,
                 message: await getErrorMessage(outResultCode)
@@ -245,19 +225,22 @@ export async function getEmpleadoByIdInt(req: Request, res: Response): Promise<v
         if (!empleado) {
             res.status(404).json({
                 success: false,
-                message: 'Empleado no encontrado'
+                outResultCode: 50012,
+                message: await getErrorMessage(50012)
             });
             return;
         }
 
         res.status(200).json({
             success: true,
+            outResultCode,
             data: empleado
         });
     } catch (error) {
         console.error('Error en getEmpleadoByIdInt:', error);
         res.status(500).json({
             success: false,
+            outResultCode: 50008,
             message: 'Error interno del servidor'
         });
     }

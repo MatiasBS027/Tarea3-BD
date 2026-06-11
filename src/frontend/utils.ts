@@ -30,6 +30,8 @@ export function formatearFechaHora(valor: string): string {
 export function logout(): void {
     localStorage.removeItem('authToken');
     localStorage.removeItem('username');
+    localStorage.removeItem('userTipo');
+    localStorage.removeItem('userId');
     localStorage.removeItem('empleadoImpersonadoId');
     localStorage.removeItem('empleadoImpersonadoDoc');
     localStorage.removeItem('ultimoDocumentoEmpleado');
