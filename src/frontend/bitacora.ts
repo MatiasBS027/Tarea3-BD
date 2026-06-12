@@ -78,7 +78,10 @@ class BitacoraPage {
 
     private async cargarTiposEvento(): Promise<void> {
         try {
-            const response = await fetch('/api/bitacora/tipos-evento');
+            const token = localStorage.getItem('authToken') || '';
+            const headers: Record<string, string> = {};
+            if (token) headers['Authorization'] = 'Bearer ' + token;
+            const response = await fetch('/api/bitacora/tipos-evento', { headers });
             const payload = await response.json() as { data?: { id: number; Nombre: string }[] };
             const tipos = payload.data ?? [];
             const opts = '<option value="">Todos los tipos</option>'
