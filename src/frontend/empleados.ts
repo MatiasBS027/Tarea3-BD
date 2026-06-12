@@ -234,7 +234,10 @@ class EmpleadosPage {
         this.detalleContenido.innerHTML = '';
 
         try {
-            const response = await fetch(`/api/empleados/${encodeURIComponent(valorDocumentoIdentidad)}`);
+            const token = localStorage.getItem('authToken') || '';
+            const headers: Record<string, string> = {};
+            if (token) headers['Authorization'] = 'Bearer ' + token;
+            const response = await fetch(`/api/empleados/${encodeURIComponent(valorDocumentoIdentidad)}`, { headers });
 
             const payload = await response.json() as {
                 success: boolean;

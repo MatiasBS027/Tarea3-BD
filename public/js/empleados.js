@@ -168,7 +168,11 @@ class EmpleadosPage {
         this.detalleEstado.className = 'status info';
         this.detalleContenido.innerHTML = '';
         try {
-            const response = await fetch(`/api/empleados/${encodeURIComponent(valorDocumentoIdentidad)}`);
+            const token = localStorage.getItem('authToken') || '';
+            const headers = {};
+            if (token)
+                headers['Authorization'] = 'Bearer ' + token;
+            const response = await fetch(`/api/empleados/${encodeURIComponent(valorDocumentoIdentidad)}`, { headers });
             const payload = await response.json();
             if (!response.ok || !payload.success || !payload.data) {
                 this.detalleEstado.textContent = payload.message || 'No se pudo cargar el detalle.';
