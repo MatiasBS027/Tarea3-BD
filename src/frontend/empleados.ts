@@ -28,7 +28,9 @@ class EmpleadosPage {
     private detalleContenido: HTMLElement;
     private detalleTitulo: HTMLElement;
     private detalleEstado: HTMLElement;
+    private detalleCerrarBtn: HTMLButtonElement;
     private logoutBtn: HTMLButtonElement;
+    private empleadoConsultado: string | null = null;
 
     constructor() {
         this.filtroInput = document.getElementById('filtro') as HTMLInputElement;
@@ -41,6 +43,7 @@ class EmpleadosPage {
         this.detalleContenido = document.getElementById('detalleContenido') as HTMLElement;
         this.detalleTitulo = document.getElementById('detalleTitulo') as HTMLElement;
         this.detalleEstado = document.getElementById('detalleEstado') as HTMLElement;
+        this.detalleCerrarBtn = document.getElementById('detalleCerrarBtn') as HTMLButtonElement;
         this.logoutBtn = document.getElementById('logoutBtn') as HTMLButtonElement;
 
         this.bindEvents();
@@ -56,6 +59,12 @@ class EmpleadosPage {
             this.filtroInput.value = '';
             void this.cargarEmpleados();
         });
+
+        if (this.detalleCerrarBtn) {
+            this.detalleCerrarBtn.addEventListener('click', () => {
+                this.cerrarDetalle();
+            });
+        }
 
         this.filtroInput.addEventListener('keydown', (event) => {
             if (event.key === 'Enter') {
@@ -92,7 +101,13 @@ class EmpleadosPage {
         }
     }
 
+    private cerrarDetalle(): void {
+        this.detallePanel.classList.add('hidden');
+        this.empleadoConsultado = null;
+    }
+
     private async cargarEmpleados(): Promise<void> {
+        this.cerrarDetalle();
         const filtro = this.filtroInput.value.trim();
         const token = localStorage.getItem('authToken') || '';
         const headers: Record<string, string> = {};
@@ -227,6 +242,12 @@ class EmpleadosPage {
     }
 
     private async consultarEmpleado(valorDocumentoIdentidad: string): Promise<void> {
+        // Toggle: si es el mismo empleado, cerrar
+        if (this.empleadoConsultado === valorDocumentoIdentidad) {
+            this.cerrarDetalle();
+            return;
+        }
+        this.empleadoConsultado = valorDocumentoIdentidad;
         this.detallePanel.classList.remove('hidden');
         this.detalleTitulo.textContent = `Consulta de ${valorDocumentoIdentidad}`;
         this.detalleEstado.textContent = 'Cargando detalle del empleado...';

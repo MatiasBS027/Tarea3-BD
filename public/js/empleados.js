@@ -1,6 +1,7 @@
 import { setEstado as setEstadoEl, logout, escapeHtml } from './utils.js';
 class EmpleadosPage {
     constructor() {
+        this.empleadoConsultado = null;
         this.filtroInput = document.getElementById('filtro');
         this.buscarBtn = document.getElementById('buscarBtn');
         this.limpiarBtn = document.getElementById('limpiarBtn');
@@ -11,6 +12,7 @@ class EmpleadosPage {
         this.detalleContenido = document.getElementById('detalleContenido');
         this.detalleTitulo = document.getElementById('detalleTitulo');
         this.detalleEstado = document.getElementById('detalleEstado');
+        this.detalleCerrarBtn = document.getElementById('detalleCerrarBtn');
         this.logoutBtn = document.getElementById('logoutBtn');
         this.bindEvents();
         this.cargarEmpleados();
@@ -23,6 +25,11 @@ class EmpleadosPage {
             this.filtroInput.value = '';
             void this.cargarEmpleados();
         });
+        if (this.detalleCerrarBtn) {
+            this.detalleCerrarBtn.addEventListener('click', () => {
+                this.cerrarDetalle();
+            });
+        }
         this.filtroInput.addEventListener('keydown', (event) => {
             if (event.key === 'Enter') {
                 event.preventDefault();
@@ -52,7 +59,12 @@ class EmpleadosPage {
             });
         }
     }
+    cerrarDetalle() {
+        this.detallePanel.classList.add('hidden');
+        this.empleadoConsultado = null;
+    }
     async cargarEmpleados() {
+        this.cerrarDetalle();
         const filtro = this.filtroInput.value.trim();
         const token = localStorage.getItem('authToken') || '';
         const headers = {};
@@ -162,6 +174,12 @@ class EmpleadosPage {
         }
     }
     async consultarEmpleado(valorDocumentoIdentidad) {
+        // Toggle: si es el mismo empleado, cerrar
+        if (this.empleadoConsultado === valorDocumentoIdentidad) {
+            this.cerrarDetalle();
+            return;
+        }
+        this.empleadoConsultado = valorDocumentoIdentidad;
         this.detallePanel.classList.remove('hidden');
         this.detalleTitulo.textContent = `Consulta de ${valorDocumentoIdentidad}`;
         this.detalleEstado.textContent = 'Cargando detalle del empleado...';
