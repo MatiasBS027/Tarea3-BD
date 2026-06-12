@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { getPool, sql } from '../db/connection';
+import { getHttpStatus } from '../utils/errorhelper';
 import type { IRecordSet } from 'mssql';
 
 type BitacoraRow = {
@@ -57,7 +58,7 @@ export async function getBitacora(req: Request, res: Response): Promise<void> {
         const total = recordsets[1]?.[0]?.Total ?? 0;
 
         if (outResultCode !== 0) {
-            res.status(500).json({
+            res.status(getHttpStatus(outResultCode)).json({
                 success: false,
                 outResultCode,
                 message: 'Error al consultar la bitacora',

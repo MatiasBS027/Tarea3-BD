@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { getPool, sql } from '../db/connection';
-import { getErrorMessage } from '../utils/errorhelper';
+import { getErrorMessage, getHttpStatus } from '../utils/errorhelper';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
 
 // GET /api/empleados
@@ -19,7 +19,7 @@ export async function getEmpleados(req: Request, res: Response): Promise<void> {
         const outResultCode: number = result.output.outResultCode;
 
         if (outResultCode !== 0) {
-            res.status(400).json({
+            res.status(getHttpStatus(outResultCode)).json({
                 success: false,
                 outResultCode,
                 message: await getErrorMessage(outResultCode)
@@ -66,7 +66,7 @@ export async function getEmpleadoById(req: Request, res: Response): Promise<void
         const outResultCode: number = result.output.outResultCode;
 
         if (outResultCode !== 0) {
-            res.status(404).json({
+            res.status(getHttpStatus(outResultCode)).json({
                 success: false,
                 outResultCode,
                 message: await getErrorMessage(outResultCode)
@@ -125,7 +125,7 @@ export async function impersonarEmpleado(req: Request, res: Response): Promise<v
         const outIdEmpleado: number | null = result.output.outIdEmpleado ?? null;
 
         if (outResultCode !== 0) {
-            res.status(outResultCode === 50012 ? 404 : 400).json({
+            res.status(getHttpStatus(outResultCode)).json({
                 success: false,
                 outResultCode,
                 message: await getErrorMessage(outResultCode)
@@ -170,7 +170,7 @@ export async function regresarAdmin(req: Request, res: Response): Promise<void> 
         const outResultCode: number = result.output.outResultCode;
 
         if (outResultCode !== 0) {
-            res.status(outResultCode === 50013 ? 403 : 400).json({
+            res.status(getHttpStatus(outResultCode)).json({
                 success: false,
                 outResultCode,
                 message: await getErrorMessage(outResultCode)
@@ -209,10 +209,7 @@ export async function getEmpleadoByIdInt(req: Request, res: Response): Promise<v
         const outResultCode: number = result.output.outResultCode;
 
         if (outResultCode !== 0) {
-            const status = outResultCode === 50012 ? 404
-                : outResultCode === 50008 ? 500
-                : 400;
-            res.status(status).json({
+            res.status(getHttpStatus(outResultCode)).json({
                 success: false,
                 outResultCode,
                 message: await getErrorMessage(outResultCode)

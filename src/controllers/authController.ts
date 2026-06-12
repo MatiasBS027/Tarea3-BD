@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { getPool, sql } from '../db/connection';
-import { getErrorMessage } from '../utils/errorhelper';
+import { getErrorMessage, getHttpStatus } from '../utils/errorhelper';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
 
 interface LoginResponse {
@@ -65,16 +65,7 @@ export class AuthController {
 
             const message = await getErrorMessage(outResultCode);
 
-            if (outResultCode === 50003) {
-                res.status(403).json({
-                    success: false,
-                    outResultCode,
-                    message,
-                } as LoginResponse);
-                return;
-            }
-
-            res.status(outResultCode === 50008 ? 500 : 401).json({
+            res.status(getHttpStatus(outResultCode)).json({
                 success: false,
                 outResultCode,
                 message,
@@ -113,7 +104,7 @@ export class AuthController {
             const outResultCode = Number(result.output.outResultCode ?? 50008);
 
             if (outResultCode !== 0) {
-                res.status(500).json({
+                res.status(getHttpStatus(outResultCode)).json({
                     success: false,
                     outResultCode,
                     message: await getErrorMessage(outResultCode),
