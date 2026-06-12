@@ -71,7 +71,10 @@ class EmpleadoViewPage {
         this.estadoDiv.className = 'status info';
 
         try {
-            const response = await fetch(`/api/empleados/by-id/${this.empleadoId}`);
+            const token = localStorage.getItem('authToken') || '';
+            const headers: Record<string, string> = {};
+            if (token) headers['Authorization'] = 'Bearer ' + token;
+            const response = await fetch(`/api/empleados/by-id/${this.empleadoId}`, { headers });
 
             const payload = await response.json() as {
                 success: boolean;

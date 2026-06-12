@@ -39,7 +39,11 @@ class EmpleadoViewPage {
         this.estadoDiv.textContent = 'Cargando datos del empleado...';
         this.estadoDiv.className = 'status info';
         try {
-            const response = await fetch(`/api/empleados/by-id/${this.empleadoId}`);
+            const token = localStorage.getItem('authToken') || '';
+            const headers = {};
+            if (token)
+                headers['Authorization'] = 'Bearer ' + token;
+            const response = await fetch(`/api/empleados/by-id/${this.empleadoId}`, { headers });
             const payload = await response.json();
             if (!response.ok || !payload.success || !payload.data) {
                 this.estadoDiv.textContent = payload.message || 'No se pudo cargar el empleado.';
