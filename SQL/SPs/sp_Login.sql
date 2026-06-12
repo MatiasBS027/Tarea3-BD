@@ -19,6 +19,7 @@ CREATE PROCEDURE [dbo].[sp_Login]
 AS
 BEGIN
     SET NOCOUNT ON;
+    SET XACT_ABORT ON;
 
     SET @outResultCode = 0;
 
@@ -161,8 +162,8 @@ BEGIN
         VALUES (
             SYSTEM_USER,
             ERROR_NUMBER(),
-            CAST(ERROR_STATE()    AS VARCHAR(32)),
-            CAST(ERROR_SEVERITY() AS VARCHAR(32)),
+            ERROR_STATE(),
+            ERROR_SEVERITY(),
             ERROR_LINE(),
             ISNULL(ERROR_PROCEDURE(), 'sp_Login'),
             ERROR_MESSAGE(),

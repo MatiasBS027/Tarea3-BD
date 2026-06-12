@@ -1,4 +1,4 @@
-import { formatearFecha, logout } from './utils.js';
+import { formatearFecha, logout, escapeHtml } from './utils.js';
 
 type EmpleadoPlanilla = {
     id: number;
@@ -104,15 +104,15 @@ class EmpleadoViewPage {
                 <div class="detalle-grid">
                     <div class="detalle-item">
                         <span class="detalle-label">Documento</span>
-                        <span class="detalle-valor">${emp.ValorDocumento}</span>
+                        <span class="detalle-valor">${escapeHtml(emp.ValorDocumento)}</span>
                     </div>
                     <div class="detalle-item">
                         <span class="detalle-label">Nombre</span>
-                        <span class="detalle-valor">${emp.Nombre}</span>
+                        <span class="detalle-valor">${escapeHtml(emp.Nombre)}</span>
                     </div>
                     <div class="detalle-item">
                         <span class="detalle-label">Puesto</span>
-                        <span class="detalle-valor">${emp.NombrePuesto}</span>
+                        <span class="detalle-valor">${escapeHtml(emp.NombrePuesto)}</span>
                     </div>
                     <div class="detalle-item">
                         <span class="detalle-label">Fecha contratación</span>
@@ -120,7 +120,7 @@ class EmpleadoViewPage {
                     </div>
                     <div class="detalle-item">
                         <span class="detalle-label">Cuenta bancaria</span>
-                        <span class="detalle-valor">${emp.CuentaBancaria}</span>
+                        <span class="detalle-valor">${escapeHtml(emp.CuentaBancaria)}</span>
                     </div>
                     <div class="detalle-item">
                         <span class="detalle-label">Estado</span>

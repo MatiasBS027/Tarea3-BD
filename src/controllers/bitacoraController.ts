@@ -53,7 +53,7 @@ export async function getBitacora(req: Request, res: Response): Promise<void> {
             .execute('sp_GetBitacora');
 
         const recordsets = result.recordsets as IRecordSet<any>[];
-        const outResultCode: number = result.output.outResultCode;
+        const outResultCode = Number(result.output.outResultCode ?? 50008);
         const data = recordsets[0] as BitacoraRow[];
         const total = recordsets[1]?.[0]?.Total ?? 0;
 

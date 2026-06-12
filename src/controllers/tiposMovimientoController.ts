@@ -11,7 +11,7 @@ export async function getTiposMovimiento(_req: Request, res: Response): Promise<
             .output('outResultCode', sql.Int)
             .execute('sp_GetTiposMovimiento');
 
-        const outResultCode: number = result.output.outResultCode;
+        const outResultCode = Number(result.output.outResultCode ?? 50008);
 
         if (outResultCode !== 0) {
             res.status(getHttpStatus(outResultCode)).json({

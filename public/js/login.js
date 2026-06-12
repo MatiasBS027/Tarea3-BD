@@ -31,6 +31,11 @@ class LoginManager {
         this.blockedTime = document.getElementById('blockedTime');
         // Configurar listeners (escuchadores de eventos)
         this.setupEventListeners();
+        // Limpiar contador de bloqueo al salir de la pagina
+        window.addEventListener('beforeunload', () => {
+            if (this.blockedCountdown)
+                clearTimeout(this.blockedCountdown);
+        });
     }
     /**
     * Configurar todos los listeners de eventos

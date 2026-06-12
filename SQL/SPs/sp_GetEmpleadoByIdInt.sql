@@ -29,7 +29,8 @@ BEGIN
             e.Activo
         FROM dbo.Empleado e
         INNER JOIN dbo.Puesto p ON e.idPuesto = p.id
-        WHERE e.id = @inId;
+        WHERE e.id = @inId
+            AND e.Activo = 1;
     END TRY
     BEGIN CATCH
         INSERT INTO [dbo].[DBError] ([UserName], [Number], [State], [Severity], [Line], [Procedure], [Message], [DateTime])

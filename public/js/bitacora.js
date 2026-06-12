@@ -1,4 +1,4 @@
-import { setEstado as setEstadoEl, logout } from './utils.js';
+import { setEstado as setEstadoEl, logout, escapeHtml } from './utils.js';
 class BitacoraPage {
     constructor() {
         this.paginaActual = 1;
@@ -128,10 +128,10 @@ class BitacoraPage {
                 : '';
             tr.innerHTML = `
                 <td>${fecha}</td>
-                <td><span class="badge badge-event">${row.TipoEvento}</span></td>
-                <td>${row.Username ?? '-'}</td>
-                <td>${row.Descripcion || '-'}</td>
-                <td>${row.IpPostIn}</td>
+                <td><span class="badge badge-event">${escapeHtml(row.TipoEvento)}</span></td>
+                <td>${escapeHtml(row.Username ?? '-')}</td>
+                <td>${escapeHtml(row.Descripcion || '-')}</td>
+                <td>${escapeHtml(row.IpPostIn)}</td>
                 <td>${row.id}</td>
             `;
             this.tablaBody.appendChild(tr);

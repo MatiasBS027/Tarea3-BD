@@ -10,6 +10,8 @@ GO
 
 CREATE PROCEDURE [dbo].[sp_GetEmpleados]
     @inNombre VARCHAR(128) = NULL,
+    @inPostTime DATETIME = NULL,
+    @inIpPostIn VARCHAR(64) = NULL,
     @outResultCode INT OUTPUT
 AS
 BEGIN
@@ -39,8 +41,10 @@ BEGIN
             -- TipoEvento 5 = "Filtro empleados" (se asume que existe en catalogo)
             IF EXISTS (SELECT 1 FROM dbo.TipoEvento WHERE id = 5)
             BEGIN
-                INSERT INTO dbo.BitacoraEvento (idTipoEvento, idUsuario, PostTime, IpPostIn, Descripcion)
-                VALUES (5, NULL, GETDATE(), '', 'Filtro empleado: ' + @inNombre);
+                BEGIN TRANSACTION
+                    INSERT INTO dbo.BitacoraEvento (idTipoEvento, idUsuario, PostTime, IpPostIn, Descripcion)
+                    VALUES (5, NULL, @inPostTime, @inIpPostIn, 'Filtro empleado: ' + @inNombre);
+                COMMIT TRANSACTION;
             END;
 
             SELECT

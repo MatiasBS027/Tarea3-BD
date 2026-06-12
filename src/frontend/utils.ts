@@ -27,6 +27,12 @@ export function formatearFechaHora(valor: string): string {
     }
 }
 
+export function escapeHtml(str: string | number | null | undefined): string {
+    const s = String(str ?? '');
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 export function logout(): void {
     localStorage.removeItem('authToken');
     localStorage.removeItem('username');

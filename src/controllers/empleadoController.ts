@@ -13,10 +13,12 @@ export async function getEmpleados(req: Request, res: Response): Promise<void> {
         const result = await pool
             .request()
             .input('inNombre', sql.VarChar(128), filtro)
+            .input('inPostTime', sql.DateTime, new Date())
+            .input('inIpPostIn', sql.VarChar(64), req.ip ?? '')
             .output('outResultCode', sql.Int)
             .execute('sp_GetEmpleados');
 
-        const outResultCode: number = result.output.outResultCode;
+        const outResultCode = Number(result.output.outResultCode ?? 50008);
 
         if (outResultCode !== 0) {
             res.status(getHttpStatus(outResultCode)).json({
@@ -63,7 +65,7 @@ export async function getEmpleadoById(req: Request, res: Response): Promise<void
             .output('outResultCode', sql.Int)
             .execute('sp_GetEmpleadoById');
 
-        const outResultCode: number = result.output.outResultCode;
+        const outResultCode = Number(result.output.outResultCode ?? 50008);
 
         if (outResultCode !== 0) {
             res.status(getHttpStatus(outResultCode)).json({
@@ -121,7 +123,7 @@ export async function impersonarEmpleado(req: Request, res: Response): Promise<v
             .output('outResultCode', sql.Int)
             .execute('sp_ImpersonarEmpleado');
 
-        const outResultCode: number = result.output.outResultCode;
+        const outResultCode = Number(result.output.outResultCode ?? 50008);
         const outIdEmpleado: number | null = result.output.outIdEmpleado ?? null;
 
         if (outResultCode !== 0) {
@@ -167,7 +169,7 @@ export async function regresarAdmin(req: Request, res: Response): Promise<void> 
             .output('outResultCode', sql.Int)
             .execute('sp_RegresarAdmin');
 
-        const outResultCode: number = result.output.outResultCode;
+        const outResultCode = Number(result.output.outResultCode ?? 50008);
 
         if (outResultCode !== 0) {
             res.status(getHttpStatus(outResultCode)).json({
@@ -206,7 +208,7 @@ export async function getEmpleadoByIdInt(req: Request, res: Response): Promise<v
             .output('outResultCode', sql.Int)
             .execute('sp_GetEmpleadoByIdInt');
 
-        const outResultCode: number = result.output.outResultCode;
+        const outResultCode = Number(result.output.outResultCode ?? 50008);
 
         if (outResultCode !== 0) {
             res.status(getHttpStatus(outResultCode)).json({

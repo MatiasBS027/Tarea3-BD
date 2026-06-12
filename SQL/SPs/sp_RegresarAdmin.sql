@@ -16,6 +16,8 @@ CREATE PROCEDURE [dbo].[sp_RegresarAdmin]
 AS
 BEGIN
     SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+
     SET @outResultCode = 0;
 
     DECLARE @idTipoEvento INT;

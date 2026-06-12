@@ -1,4 +1,4 @@
-import { setEstado as setEstadoEl, logout } from './utils.js';
+import { setEstado as setEstadoEl, logout, escapeHtml } from './utils.js';
 
 type Empleado = {
     Nombre: string;
@@ -156,14 +156,14 @@ class EmpleadosPage {
             const fila = document.createElement('tr');
 
             fila.innerHTML = `
-                <td>${empleado.Nombre}</td>
-                <td>${empleado.ValorDocumento}</td>
-                <td>${empleado.NombrePuesto}</td>
+                <td>${escapeHtml(empleado.Nombre)}</td>
+                <td>${escapeHtml(empleado.ValorDocumento)}</td>
+                <td>${escapeHtml(empleado.NombrePuesto)}</td>
                 <td>
-                    <button type="button" class="action-button action-view" data-accion="consultar" data-documento="${empleado.ValorDocumento}">
+                    <button type="button" class="action-button action-view" data-accion="consultar" data-documento="${escapeHtml(empleado.ValorDocumento)}">
                         Consultar
                     </button>
-                    <button type="button" class="action-button action-impersonar" data-accion="impersonar" data-documento="${empleado.ValorDocumento}">
+                    <button type="button" class="action-button action-impersonar" data-accion="impersonar" data-documento="${escapeHtml(empleado.ValorDocumento)}">
                         Impersonar
                     </button>
                 </td>
@@ -275,15 +275,15 @@ class EmpleadosPage {
                 <div class="detalle-grid">
                     <div class="detalle-item">
                         <span class="detalle-label">Documento</span>
-                        <span class="detalle-valor">${detalle.ValorDocumento}</span>
+                        <span class="detalle-valor">${escapeHtml(detalle.ValorDocumento)}</span>
                     </div>
                     <div class="detalle-item">
                         <span class="detalle-label">Nombre</span>
-                        <span class="detalle-valor">${detalle.Nombre}</span>
+                        <span class="detalle-valor">${escapeHtml(detalle.Nombre)}</span>
                     </div>
                     <div class="detalle-item">
                         <span class="detalle-label">Puesto</span>
-                        <span class="detalle-valor">${detalle.NombrePuesto}</span>
+                        <span class="detalle-valor">${escapeHtml(detalle.NombrePuesto)}</span>
                     </div>
                     <div class="detalle-item">
                         <span class="detalle-label">Fecha contratación</span>

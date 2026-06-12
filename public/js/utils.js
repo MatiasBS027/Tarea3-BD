@@ -24,6 +24,11 @@ export function formatearFechaHora(valor) {
         return valor;
     }
 }
+export function escapeHtml(str) {
+    const s = String(str ?? '');
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
 export function logout() {
     localStorage.removeItem('authToken');
     localStorage.removeItem('username');

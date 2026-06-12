@@ -18,6 +18,8 @@ CREATE PROCEDURE [dbo].[sp_ImpersonarEmpleado]
 AS
 BEGIN
     SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+
     SET @outResultCode = 0;
     SET @outIdEmpleado = NULL;
 
