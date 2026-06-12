@@ -158,7 +158,7 @@ class BitacoraPage {
         if (data.length === 0) {
             this.tablaBody.innerHTML = `
                 <tr>
-                    <td colspan="6" class="empty-state">No hay registros en la bitácora.</td>
+                    <td colspan="5" class="empty-state">No hay registros en la bitácora.</td>
                 </tr>
             `;
             return;
@@ -176,7 +176,6 @@ class BitacoraPage {
                 <td>${escapeHtml(row.Username ?? '-')}</td>
                 <td>${escapeHtml(row.Descripcion || '-')}</td>
                 <td>${escapeHtml(row.IpPostIn)}</td>
-                <td>${row.id}</td>
             `;
             this.tablaBody.appendChild(tr);
         }
