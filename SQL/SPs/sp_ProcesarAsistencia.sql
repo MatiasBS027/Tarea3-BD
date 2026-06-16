@@ -203,7 +203,7 @@ BEGIN
                 THEN
                     CASE s.TipoSeg
                         WHEN 'O' THEN 2.0   -- ordinaria en día especial
-                        WHEN 'E' THEN 3.0   -- extra en día especial (base doble × 1.5)
+                        WHEN 'E' THEN 2.0   -- extra en día especial
                     END
                 -- Día normal
                 ELSE
