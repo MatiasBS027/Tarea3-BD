@@ -1,0 +1,234 @@
+USE [PlanillaDB];
+GO
+
+IF OBJECT_ID(N'dbo.sp_ProcesarPlanillaSemanal', N'P') IS NOT NULL
+    DROP PROCEDURE [dbo].[sp_ProcesarPlanillaSemanal];
+GO
+
+-- =====================================================================
+-- sp_ProcesarPlanillaSemanal
+--
+-- Cierre semanal: se ejecuta cada jueves para todos los empleados
+-- activos con PlanillaSemanal abierta en esa semana.
+-- =====================================================================
+
+CREATE PROCEDURE [dbo].[sp_ProcesarPlanillaSemanal]
+    @inFechaJueves DATE
+    , @outResultCode INT OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+
+    SET @outResultCode = 0;
+
+    DECLARE
+        @idSemana  INT
+        , @idMes     INT
+        , @numJueves TINYINT;
+
+    BEGIN TRY
+
+        -- ============================================================
+        -- 1. Buscar la semana cuyo FechaFin = @inFechaJueves
+        -- ============================================================
+        SELECT
+            @idSemana = s.id
+            , @idMes = s.idMes
+            , @numJueves = m.NumJueves
+        FROM dbo.Semana s
+        INNER JOIN dbo.Mes m ON m.id = s.idMes
+        WHERE s.FechaFin = @inFechaJueves;
+
+        IF @idSemana IS NULL
+        BEGIN
+            SET @outResultCode = 60004;
+            RETURN;
+        END
+
+        -- ============================================================
+        -- 2. Calcular deducciones por empleado en tabla temporal
+        --
+        --    Una fila por (empleado, tipoDeduccion).
+        --    Porcentual : Monto = SalarioBruto × Valor
+        --    Fija       : Monto = MontoFijo / NumJueves
+        -- ============================================================
+        SELECT
+            ps.idEmpleado
+            , ps.id AS idPlanSem
+            , ps.SalarioBruto
+            , de.idTipoDeduccion
+            , td.idTipoMovimiento,
+            ROUND(
+                CASE
+                    WHEN td.EsPorcentual = 1
+                    THEN ps.SalarioBruto * td.Valor
+                    ELSE de.MontoFijo / CAST(@numJueves AS DECIMAL(4,2))
+                END, 2
+            ) AS MontoDeduccion
+        INTO #Deducciones
+        FROM dbo.PlanillaSemanal ps
+        INNER JOIN dbo.DeduccionEmpleado de
+            ON  de.idEmpleado = ps.idEmpleado
+            AND de.FechaInicio <= @inFechaJueves
+            AND de.FechaFin >= @inFechaJueves
+        INNER JOIN dbo.TipoDeduccion td
+            ON  td.id = de.idTipoDeduccion
+        WHERE ps.idSemana = @idSemana;
+
+        -- ============================================================
+        -- 3. Totales por empleado
+        -- ============================================================
+        SELECT
+            idEmpleado
+            , idPlanSem
+            , SalarioBruto
+            , SUM(MontoDeduccion) AS TotalDeducciones
+            , SalarioBruto - SUM(MontoDeduccion) AS SalarioNeto
+        INTO #TotalesEmpleado
+        FROM #Deducciones
+        GROUP BY idEmpleado, idPlanSem, SalarioBruto;
+
+        -- Incluir empleados sin deducciones (SalarioNeto = SalarioBruto)
+        INSERT INTO #TotalesEmpleado (idEmpleado, idPlanSem, SalarioBruto, TotalDeducciones, SalarioNeto)
+        SELECT
+            ps.idEmpleado
+            , ps.id
+            , ps.SalarioBruto
+            , 0
+            , ps.SalarioBruto
+        FROM dbo.PlanillaSemanal ps
+        WHERE ps.idSemana = @idSemana
+          AND NOT EXISTS (
+              SELECT 1 FROM #TotalesEmpleado t WHERE t.idPlanSem = ps.id
+          );
+
+        BEGIN TRANSACTION;
+
+            -- ============================================================
+            -- 4. Insertar MovPlanilla con NuevoSaldo acumulado por empleado
+            --
+            --    NuevoSaldo = SalarioBruto - suma acumulada de deducciones
+            --    hasta el movimiento actual
+            -- ============================================================
+            INSERT INTO dbo.MovPlanilla (idPlanillaSemanal, idTipoMovimiento, Monto, NuevoSaldo)
+            SELECT
+                d.idPlanSem
+                , d.idTipoMovimiento
+                , d.MontoDeduccion
+                , d.SalarioBruto - (
+                    SELECT SUM(d2.MontoDeduccion)
+                    FROM #Deducciones d2
+                    WHERE d2.idPlanSem = d.idPlanSem
+                      AND d2.idTipoDeduccion <= d.idTipoDeduccion
+                ) AS NuevoSaldo
+            FROM #Deducciones d;
+
+            -- ============================================================
+            -- 5. Cerrar PlanillaSemanal
+            -- ============================================================
+            UPDATE ps
+            SET ps.TotalDeducciones = t.TotalDeducciones
+                , ps.SalarioNeto = t.SalarioNeto
+            FROM dbo.PlanillaSemanal ps
+            INNER JOIN #TotalesEmpleado t ON t.idPlanSem = ps.id;
+
+            -- ============================================================
+            -- 6. Crear PlanillaMensual para empleados que no la tienen aún
+            --    (primera semana del mes para ese empleado)
+            -- ============================================================
+            INSERT INTO dbo.PlanillaMensual (idEmpleado, idMes, SalarioBruto, TotalDeducciones, SalarioNeto)
+            SELECT t.idEmpleado, @idMes, 0, 0, 0
+            FROM #TotalesEmpleado t
+            WHERE NOT EXISTS (
+                SELECT 1
+                FROM dbo.PlanillaMensual pm
+                WHERE pm.idEmpleado = t.idEmpleado
+                  AND pm.idMes = @idMes
+            );
+
+            -- ============================================================
+            -- 7. Acumular en PlanillaMensual
+            -- ============================================================
+            UPDATE pm
+            SET pm.SalarioBruto = pm.SalarioBruto + t.SalarioBruto
+                , pm.TotalDeducciones = pm.TotalDeducciones + t.TotalDeducciones
+                , pm.SalarioNeto = pm.SalarioNeto + t.SalarioNeto
+            FROM dbo.PlanillaMensual pm
+            INNER JOIN #TotalesEmpleado t
+                ON  t.idEmpleado = pm.idEmpleado
+                AND pm.idMes = @idMes;
+
+            -- ============================================================
+            -- 8. Acumular en DeduccionXMes
+            -- ============================================================
+
+            -- Actualizar filas que ya existen
+            UPDATE dxm
+            SET dxm.MontoTotal = dxm.MontoTotal + src.MontoTotal
+            FROM dbo.DeduccionXMes dxm
+            INNER JOIN (
+                SELECT
+                    pm.id AS idPlanillaMensual
+                    , d.idEmpleado
+                    , d.idTipoDeduccion
+                    , SUM(d.MontoDeduccion) AS MontoTotal
+                FROM #Deducciones d
+                INNER JOIN dbo.PlanillaMensual pm
+                    ON  pm.idEmpleado = d.idEmpleado
+                    AND pm.idMes = @idMes
+                GROUP BY pm.id, d.idEmpleado, d.idTipoDeduccion
+            ) AS src
+                ON  dxm.idPlanillaMensual = src.idPlanillaMensual
+                AND dxm.idEmpleado = src.idEmpleado
+                AND dxm.idTipoDeduccion = src.idTipoDeduccion;
+
+            -- Insertar filas nuevas (las que no existían aún)
+            INSERT INTO dbo.DeduccionXMes (idPlanillaMensual, idEmpleado, idTipoDeduccion, MontoTotal)
+            SELECT
+                pm.id AS idPlanillaMensual
+                , d.idEmpleado
+                , d.idTipoDeduccion
+                , SUM(d.MontoDeduccion) AS MontoTotal
+            FROM #Deducciones d
+            INNER JOIN dbo.PlanillaMensual pm
+                ON  pm.idEmpleado = d.idEmpleado
+                AND pm.idMes = @idMes
+            GROUP BY pm.id, d.idEmpleado, d.idTipoDeduccion
+            HAVING NOT EXISTS (
+                SELECT 1
+                FROM dbo.DeduccionXMes dxm
+                WHERE dxm.idPlanillaMensual = pm.id
+                  AND dxm.idEmpleado = d.idEmpleado
+                  AND dxm.idTipoDeduccion = d.idTipoDeduccion
+            );
+
+        COMMIT TRANSACTION;
+
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0
+            ROLLBACK TRANSACTION;
+
+        INSERT INTO dbo.DBError (
+            UserName, Number, State, Severity, Line,
+            [Procedure], [Message], [DateTime]
+        )
+        VALUES (
+            SUSER_SNAME()
+            , ERROR_NUMBER()
+            , ERROR_STATE()
+            , ERROR_SEVERITY()
+            , ERROR_LINE()
+            , ISNULL(ERROR_PROCEDURE(), 'sp_ProcesarPlanillaSemanal')
+            , ERROR_MESSAGE()
+            , GETDATE()
+        );
+
+        SET @outResultCode = 50008;
+    END CATCH;
+
+    DROP TABLE IF EXISTS #Deducciones;
+    DROP TABLE IF EXISTS #TotalesEmpleado;
+END;
+GO
