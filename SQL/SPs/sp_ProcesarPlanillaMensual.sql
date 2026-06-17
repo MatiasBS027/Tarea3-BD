@@ -136,6 +136,47 @@ BEGIN
                   AND DXM.idTipoDeduccion = R.idTipoDeduccion
             );
 
+            -- ============================================================
+            -- 7. Abrir el siguiente ciclo: crear Mes y Semanas
+            --    El próximo viernes es el día siguiente al jueves de cierre
+            -- ============================================================
+            SET @proximoViernes = DATEADD(DAY, 1, @inFechaJueves);
+
+            EXEC dbo.sp_CrearCalendario
+                @inFechaInicioMes = @proximoViernes,
+                @outResultCode = @rcCalendario OUTPUT,
+                @outIdMes = @idMesNuevo   OUTPUT;
+
+            IF @rcCalendario <> 0
+            BEGIN
+                ROLLBACK TRANSACTION;
+                SET @outResultCode = @rcCalendario;
+                RETURN;
+            END
+
+            -- ============================================================
+            -- 8. Obtener la primera semana del nuevo mes (la del viernes)
+            -- ============================================================
+            SELECT @idSemanaNueva = S.id
+            FROM dbo.Semana S
+            WHERE S.idMes = @idMesNuevo
+              AND S.FechaInicio = @proximoViernes;
+
+            -- ============================================================
+            -- 9. Crear PlanillaSemanal en cero para todos los empleados
+            --    activos en la nueva semana
+            -- ============================================================
+            INSERT INTO dbo.PlanillaSemanal (idEmpleado, idSemana, SalarioBruto, TotalDeducciones, SalarioNeto)
+            SELECT E.id, @idSemanaNueva, 0, 0, 0
+            FROM dbo.Empleado E
+            WHERE E.EsActivo = 1
+              AND NOT EXISTS (
+                  SELECT 1
+                  FROM dbo.PlanillaSemanal PS
+                  WHERE PS.idEmpleado = E.id
+                    AND PS.idSemana = @idSemanaNueva
+              );
+
         COMMIT TRANSACTION;
 
     END TRY
