@@ -8,13 +8,16 @@ GO
 -- =====================================================================
 -- sp_ProcesarPlanillaSemanal
 --
--- Cierre semanal: se ejecuta cada jueves para todos los empleados
--- activos con PlanillaSemanal abierta en esa semana.
+-- Cierre semanal: se ejecuta TODOS los jueves.
+--
+-- 1. Calcular deducciones porcentuales y fijas vigentes al jueves.
+-- 2. Insertar MovPlanilla por cada deducción de cada empleado.
+-- 3. Actualizar TotalDeducciones y SalarioNeto en PlanillaSemanal.
 -- =====================================================================
 
 CREATE PROCEDURE [dbo].[sp_ProcesarPlanillaSemanal]
-    @inFechaJueves DATE
-    , @outResultCode INT OUTPUT
+    @inFechaJueves DATE,
+    @outResultCode INT OUTPUT
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -23,9 +26,9 @@ BEGIN
     SET @outResultCode = 0;
 
     DECLARE
-        @idSemana  INT
-        , @idMes     INT
-        , @numJueves TINYINT;
+        @idSemana  INT,
+        @idMes     INT,
+        @numJueves TINYINT;
 
     BEGIN TRY
 
@@ -58,8 +61,8 @@ BEGIN
             , ps.id AS idPlanSem
             , ps.SalarioBruto
             , de.idTipoDeduccion
-            , td.idTipoMovimiento,
-            ROUND(
+            , td.idTipoMovimiento
+            , ROUND(
                 CASE
                     WHEN td.EsPorcentual = 1
                     THEN ps.SalarioBruto * td.Valor
@@ -106,10 +109,9 @@ BEGIN
         BEGIN TRANSACTION;
 
             -- ============================================================
-            -- 4. Insertar MovPlanilla con NuevoSaldo acumulado por empleado
-            --
+            -- 4. Insertar MovPlanilla
             --    NuevoSaldo = SalarioBruto - suma acumulada de deducciones
-            --    hasta el movimiento actual
+            --    hasta e incluyendo la actual (ordenadas por idTipoDeduccion)
             -- ============================================================
             INSERT INTO dbo.MovPlanilla (idPlanillaSemanal, idTipoMovimiento, Monto, NuevoSaldo)
             SELECT
@@ -128,80 +130,10 @@ BEGIN
             -- 5. Cerrar PlanillaSemanal
             -- ============================================================
             UPDATE ps
-            SET ps.TotalDeducciones = t.TotalDeducciones
-                , ps.SalarioNeto = t.SalarioNeto
-            FROM dbo.PlanillaSemanal ps
+            SET    ps.TotalDeducciones = t.TotalDeducciones
+                   , ps.SalarioNeto = t.SalarioNeto
+            FROM   dbo.PlanillaSemanal ps
             INNER JOIN #TotalesEmpleado t ON t.idPlanSem = ps.id;
-
-            -- ============================================================
-            -- 6. Crear PlanillaMensual para empleados que no la tienen aún
-            --    (primera semana del mes para ese empleado)
-            -- ============================================================
-            INSERT INTO dbo.PlanillaMensual (idEmpleado, idMes, SalarioBruto, TotalDeducciones, SalarioNeto)
-            SELECT t.idEmpleado, @idMes, 0, 0, 0
-            FROM #TotalesEmpleado t
-            WHERE NOT EXISTS (
-                SELECT 1
-                FROM dbo.PlanillaMensual pm
-                WHERE pm.idEmpleado = t.idEmpleado
-                  AND pm.idMes = @idMes
-            );
-
-            -- ============================================================
-            -- 7. Acumular en PlanillaMensual
-            -- ============================================================
-            UPDATE pm
-            SET pm.SalarioBruto = pm.SalarioBruto + t.SalarioBruto
-                , pm.TotalDeducciones = pm.TotalDeducciones + t.TotalDeducciones
-                , pm.SalarioNeto = pm.SalarioNeto + t.SalarioNeto
-            FROM dbo.PlanillaMensual pm
-            INNER JOIN #TotalesEmpleado t
-                ON  t.idEmpleado = pm.idEmpleado
-                AND pm.idMes = @idMes;
-
-            -- ============================================================
-            -- 8. Acumular en DeduccionXMes
-            -- ============================================================
-
-            -- Actualizar filas que ya existen
-            UPDATE dxm
-            SET dxm.MontoTotal = dxm.MontoTotal + src.MontoTotal
-            FROM dbo.DeduccionXMes dxm
-            INNER JOIN (
-                SELECT
-                    pm.id AS idPlanillaMensual
-                    , d.idEmpleado
-                    , d.idTipoDeduccion
-                    , SUM(d.MontoDeduccion) AS MontoTotal
-                FROM #Deducciones d
-                INNER JOIN dbo.PlanillaMensual pm
-                    ON  pm.idEmpleado = d.idEmpleado
-                    AND pm.idMes = @idMes
-                GROUP BY pm.id, d.idEmpleado, d.idTipoDeduccion
-            ) AS src
-                ON  dxm.idPlanillaMensual = src.idPlanillaMensual
-                AND dxm.idEmpleado = src.idEmpleado
-                AND dxm.idTipoDeduccion = src.idTipoDeduccion;
-
-            -- Insertar filas nuevas (las que no existían aún)
-            INSERT INTO dbo.DeduccionXMes (idPlanillaMensual, idEmpleado, idTipoDeduccion, MontoTotal)
-            SELECT
-                pm.id AS idPlanillaMensual
-                , d.idEmpleado
-                , d.idTipoDeduccion
-                , SUM(d.MontoDeduccion) AS MontoTotal
-            FROM #Deducciones d
-            INNER JOIN dbo.PlanillaMensual pm
-                ON  pm.idEmpleado = d.idEmpleado
-                AND pm.idMes = @idMes
-            GROUP BY pm.id, d.idEmpleado, d.idTipoDeduccion
-            HAVING NOT EXISTS (
-                SELECT 1
-                FROM dbo.DeduccionXMes dxm
-                WHERE dxm.idPlanillaMensual = pm.id
-                  AND dxm.idEmpleado = d.idEmpleado
-                  AND dxm.idTipoDeduccion = d.idTipoDeduccion
-            );
 
         COMMIT TRANSACTION;
 
@@ -211,8 +143,8 @@ BEGIN
             ROLLBACK TRANSACTION;
 
         INSERT INTO dbo.DBError (
-            UserName, Number, State, Severity, Line,
-            [Procedure], [Message], [DateTime]
+            UserName, Number, State, Severity, Line
+            ,[Procedure], [Message], [DateTime]
         )
         VALUES (
             SUSER_SNAME()
