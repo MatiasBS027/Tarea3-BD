@@ -16,8 +16,8 @@ GO
 -- =====================================================================
 
 CREATE PROCEDURE [dbo].[sp_ProcesarPlanillaSemanal]
-    @inFechaJueves DATE,
-    @outResultCode INT OUTPUT
+    @inFechaJueves DATE
+    , @outResultCode INT OUTPUT
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -26,9 +26,9 @@ BEGIN
     SET @outResultCode = 0;
 
     DECLARE
-        @idSemana  INT,
-        @idMes     INT,
-        @numJueves TINYINT;
+        @idSemana INT
+        , @idMes INT
+        , @numJueves TINYINT;
 
     BEGIN TRY
 
@@ -36,12 +36,12 @@ BEGIN
         -- 1. Buscar la semana cuyo FechaFin = @inFechaJueves
         -- ============================================================
         SELECT
-            @idSemana = s.id
-            , @idMes = s.idMes
-            , @numJueves = m.NumJueves
-        FROM dbo.Semana s
-        INNER JOIN dbo.Mes m ON m.id = s.idMes
-        WHERE s.FechaFin = @inFechaJueves;
+            @idSemana = S.id
+            , @idMes = S.idMes
+            , @numJueves = M.NumJueves
+        FROM dbo.Semana S
+        INNER JOIN dbo.Mes M ON M.id = S.idMes
+        WHERE S.FechaFin = @inFechaJueves;
 
         IF @idSemana IS NULL
         BEGIN
@@ -57,27 +57,27 @@ BEGIN
         --    Fija       : Monto = MontoFijo / NumJueves
         -- ============================================================
         SELECT
-            ps.idEmpleado
-            , ps.id AS idPlanSem
-            , ps.SalarioBruto
-            , de.idTipoDeduccion
-            , td.idTipoMovimiento
+            PS.idEmpleado
+            , PS.id AS idPlanSem
+            , PS.SalarioBruto
+            , DE.idTipoDeduccion
+            , TD.idTipoMovimiento
             , ROUND(
                 CASE
-                    WHEN td.EsPorcentual = 1
-                    THEN ps.SalarioBruto * td.Valor
-                    ELSE de.MontoFijo / CAST(@numJueves AS DECIMAL(4,2))
+                    WHEN TD.EsPorcentual = 1
+                    THEN PS.SalarioBruto * TD.Valor
+                    ELSE DE.MontoFijo / CAST(@numJueves AS DECIMAL(4,2))
                 END, 2
             ) AS MontoDeduccion
         INTO #Deducciones
-        FROM dbo.PlanillaSemanal ps
-        INNER JOIN dbo.DeduccionEmpleado de
-            ON  de.idEmpleado = ps.idEmpleado
-            AND de.FechaInicio <= @inFechaJueves
-            AND de.FechaFin >= @inFechaJueves
-        INNER JOIN dbo.TipoDeduccion td
-            ON  td.id = de.idTipoDeduccion
-        WHERE ps.idSemana = @idSemana;
+        FROM dbo.PlanillaSemanal PS
+        INNER JOIN dbo.DeduccionEmpleado DE
+            ON DE.idEmpleado = PS.idEmpleado
+            AND DE.FechaInicio <= @inFechaJueves
+            AND DE.FechaFin >= @inFechaJueves
+        INNER JOIN dbo.TipoDeduccion TD
+            ON TD.id = DE.idTipoDeduccion
+        WHERE PS.idSemana = @idSemana;
 
         -- ============================================================
         -- 3. Totales por empleado
@@ -95,15 +95,15 @@ BEGIN
         -- Incluir empleados sin deducciones (SalarioNeto = SalarioBruto)
         INSERT INTO #TotalesEmpleado (idEmpleado, idPlanSem, SalarioBruto, TotalDeducciones, SalarioNeto)
         SELECT
-            ps.idEmpleado
-            , ps.id
-            , ps.SalarioBruto
+            PS.idEmpleado
+            , PS.id
+            , PS.SalarioBruto
             , 0
-            , ps.SalarioBruto
-        FROM dbo.PlanillaSemanal ps
-        WHERE ps.idSemana = @idSemana
+            , PS.SalarioBruto
+        FROM dbo.PlanillaSemanal PS
+        WHERE PS.idSemana = @idSemana
           AND NOT EXISTS (
-              SELECT 1 FROM #TotalesEmpleado t WHERE t.idPlanSem = ps.id
+              SELECT 1 FROM #TotalesEmpleado T WHERE T.idPlanSem = PS.id
           );
 
         BEGIN TRANSACTION;
@@ -115,25 +115,25 @@ BEGIN
             -- ============================================================
             INSERT INTO dbo.MovPlanilla (idPlanillaSemanal, idTipoMovimiento, Monto, NuevoSaldo)
             SELECT
-                d.idPlanSem
-                , d.idTipoMovimiento
-                , d.MontoDeduccion
-                , d.SalarioBruto - (
-                    SELECT SUM(d2.MontoDeduccion)
-                    FROM #Deducciones d2
-                    WHERE d2.idPlanSem = d.idPlanSem
-                      AND d2.idTipoDeduccion <= d.idTipoDeduccion
+                D.idPlanSem
+                , D.idTipoMovimiento
+                , D.MontoDeduccion
+                , D.SalarioBruto - (
+                    SELECT SUM(D2.MontoDeduccion)
+                    FROM #Deducciones D2
+                    WHERE D2.idPlanSem = D.idPlanSem
+                      AND D2.idTipoDeduccion <= D.idTipoDeduccion
                 ) AS NuevoSaldo
-            FROM #Deducciones d;
+            FROM #Deducciones D;
 
             -- ============================================================
             -- 5. Cerrar PlanillaSemanal
             -- ============================================================
-            UPDATE ps
-            SET    ps.TotalDeducciones = t.TotalDeducciones
-                   , ps.SalarioNeto = t.SalarioNeto
-            FROM   dbo.PlanillaSemanal ps
-            INNER JOIN #TotalesEmpleado t ON t.idPlanSem = ps.id;
+            UPDATE PS
+            SET    PS.TotalDeducciones = T.TotalDeducciones
+                   , PS.SalarioNeto = T.SalarioNeto
+            FROM   dbo.PlanillaSemanal PS
+            INNER JOIN #TotalesEmpleado T ON T.idPlanSem = PS.id;
 
         COMMIT TRANSACTION;
 
