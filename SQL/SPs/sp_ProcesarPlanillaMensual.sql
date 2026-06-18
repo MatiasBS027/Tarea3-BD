@@ -6,20 +6,8 @@ IF OBJECT_ID(N'dbo.sp_ProcesarPlanillaMensual', N'P') IS NOT NULL
 GO
 
 -- =====================================================================
--- sp_ProcesarPlanillaMensual
---
--- Cierre mensual: se ejecuta solo el último jueves del mes,
--- después de sp_ProcesarPlanillaSemanal.
---
--- 1. Crear PlanillaMensual para todos los empleados activos del mes.
--- 2. Acumular SalarioBruto, TotalDeducciones y SalarioNeto sumando
---    todas las semanas del mes desde PlanillaSemanal.
--- 3. Crear/acumular DeduccionXMes sumando todas las semanas del mes.
--- 4. Llamar a sp_CrearCalendario con el primer viernes del siguiente ciclo.
--- 5. Crear filas de PlanillaSemanal en cero para todos los empleados
---    activos en la nueva semana.
+-- sp_ProcesarPlanillaMensual (CORREGIDO - HERENCIA DE JORNADAS ENTRANTE)
 -- =====================================================================
-
 CREATE PROCEDURE [dbo].[sp_ProcesarPlanillaMensual]
     @inFechaJueves DATE
     , @outResultCode INT OUTPUT
@@ -31,7 +19,7 @@ BEGIN
     SET @outResultCode = 0;
 
     DECLARE
-        @idMes          INT
+        @idMes           INT
         , @idSemanaActual INT
         , @proximoViernes DATE
         , @idMesNuevo     INT
@@ -77,7 +65,6 @@ BEGIN
         SELECT
             PS.idEmpleado
             , MP.idTipoMovimiento
-            -- Relacionar TipoMovimiento con TipoDeduccion para guardar idTipoDeduccion
             , TD.id AS idTipoDeduccion
             , SUM(MP.Monto) AS MontoTotal
         INTO #ResumenDeducciones
@@ -175,6 +162,23 @@ BEGIN
                   FROM dbo.PlanillaSemanal PS
                   WHERE PS.idEmpleado = E.id
                     AND PS.idSemana = @idSemanaNueva
+              );
+
+            -- ============================================================
+            -- SOLUCIÓN CRÍTICA: Heredar HorarioJornada de la semana que cierra
+            -- hacia la semana nueva que acaba de ser abierta.
+            -- ============================================================
+            INSERT INTO dbo.HorarioJornada (idEmpleado, idSemana, idTipoJornada)
+            SELECT HJ.idEmpleado, @idSemanaNueva, HJ.idTipoJornada    
+            FROM dbo.HorarioJornada HJ
+            INNER JOIN dbo.Empleado E ON E.id = HJ.idEmpleado
+            WHERE HJ.idSemana = @idSemanaActual
+              AND E.Activo = 1
+              AND NOT EXISTS (
+                  SELECT 1 
+                  FROM dbo.HorarioJornada HJ_NUEVA 
+                  WHERE HJ_NUEVA.idEmpleado = HJ.idEmpleado 
+                    AND HJ_NUEVA.idSemana = @idSemanaNueva
               );
 
         COMMIT TRANSACTION;
