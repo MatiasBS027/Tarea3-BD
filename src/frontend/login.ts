@@ -97,22 +97,25 @@ private async handleSubmit(e: Event): Promise<void> {
         localStorage.setItem('username', username);
         localStorage.setItem('userTipo', response.usuario?.tipo ?? '2');
         localStorage.setItem('userId', String(response.usuario?.id ?? ''));
+        if (response.usuario?.idEmpleado) {
+            localStorage.setItem('idEmpleado', String(response.usuario.idEmpleado));
+        } else {
+            localStorage.removeItem('idEmpleado');
+        }
     }
 
     // Redirigir según tipo de usuario
-    setTimeout(() => {
-        const tipo = response.usuario?.tipo ?? '2';
-        if (tipo === '1') {
-            window.location.href = '/empleados.html';
+    const tipo = response.usuario?.tipo ?? '2';
+    if (tipo === '1') {
+        setTimeout(() => { window.location.href = '/empleados.html'; }, 1000);
+    } else {
+        const idEmpleado = response.usuario?.idEmpleado;
+        if (idEmpleado) {
+            setTimeout(() => { window.location.href = `/empleado-view.html?id=${idEmpleado}`; }, 1000);
         } else {
-            const idEmpleado = response.usuario?.idEmpleado;
-            if (idEmpleado) {
-                window.location.href = `/empleado-view.html?id=${idEmpleado}`;
-            } else {
-                window.location.href = '/empleado-view.html';
-            }
+            this.showMessage('No se encontró un empleado activo asociado a este usuario. Contacte al administrador.', 'error');
         }
-    }, 1000);
+    }
     } else if (response.outResultCode === 50003) {
     //  CUENTA BLOQUEADA
     this.showBlockedMessage(response.message);

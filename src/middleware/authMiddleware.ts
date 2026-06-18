@@ -29,7 +29,7 @@ function decodeToken(token: string): TokenPayload | null {
         if (typeof parsed.id !== 'number' || parsed.id < 1) return null;
         if (typeof parsed.username !== 'string' || !parsed.username.trim()) return null;
         if (typeof parsed.tipo !== 'string') return null;
-        if (parsed.tipo !== '1' && parsed.tipo !== '2') return null;
+        if (!parsed.tipo) return null; // acepta cualquier tipo no vacío (admin='1', empleado='2' o '0')
         if (typeof parsed.exp !== 'number' || Date.now() >= parsed.exp) return null;
 
         return {

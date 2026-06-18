@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { getPlanillaSemanal, getPlanillaMensual } from '../controllers/planillaController';
+import { authenticate } from '../middleware/authMiddleware';
 import { param, query, validationResult } from 'express-validator';
 import { Request, Response, NextFunction } from 'express';
 
@@ -42,9 +43,9 @@ const validateCantidadMeses = [
 ];
 
 // GET /api/planilla/semanal/:idEmpleado?cantidadSemanas=10
-router.get('/semanal/:idEmpleado', [...validateIdEmpleado, ...validateCantidadSemanas], getPlanillaSemanal);
+router.get('/semanal/:idEmpleado', authenticate, [...validateIdEmpleado, ...validateCantidadSemanas], getPlanillaSemanal);
 
 // GET /api/planilla/mensual/:idEmpleado?cantidadMeses=6
-router.get('/mensual/:idEmpleado', [...validateIdEmpleado, ...validateCantidadMeses], getPlanillaMensual);
+router.get('/mensual/:idEmpleado', authenticate, [...validateIdEmpleado, ...validateCantidadMeses], getPlanillaMensual);
 
 export default router;

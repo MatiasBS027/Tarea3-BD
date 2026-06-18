@@ -47,17 +47,22 @@ export class AuthController {
 
             if (outResultCode === 0) {
                 const idUsuario = result.output.outIdUsuario;
-                const tipo = String(result.output.outTipo ?? '2');
+                const tipo = String(result.output.outTipo ?? '0');
                 const token = this.generateToken(String(username), Number(idUsuario), tipo);
 
-                // Si es empleado (tipo 2), obtener su idEmpleado
+                // Si es empleado (tipo != '1'), obtener su idEmpleado via SP
                 let idEmpleado: number | null = null;
-                if (tipo === '2') {
+                if (tipo !== '1') { // empleado: tipo '2', '0' u otro no-admin
                     const empResult = await pool
                         .request()
                         .input('inIdUsuario', sql.Int, Number(idUsuario))
-                        .query('SELECT id FROM dbo.Empleado WHERE idUsuario = @inIdUsuario AND Activo = 1');
-                    idEmpleado = empResult.recordset?.[0]?.id ?? null;
+                        .output('outIdEmpleado', sql.Int)
+                        .output('outResultCode', sql.Int)
+                        .execute('sp_GetEmpleadoIdByUsuario');
+                    const empResultCode = Number(empResult.output.outResultCode ?? 50008);
+                    if (empResultCode === 0) {
+                        idEmpleado = empResult.output.outIdEmpleado ?? null;
+                    }
                 }
 
                 res.status(200).json({
