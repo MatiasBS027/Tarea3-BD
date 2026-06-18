@@ -1,23 +1,6 @@
 USE [PlanillaDB];
 GO
 
--- =====================================================================
--- SP: sp_GetPlanillaSemanal (R04) - Versión Refactorizada (Opción 1)
---
--- Devuelve 3 result sets para el empleado indicado:
---
---  1) GRID PRINCIPAL: últimas @inCantidadSemanas planillas semanales,
---     con SalarioBruto, TotalDeducciones, SalarioNeto y la cantidad de
---     horas ordinarias / extra normales / extra dobles de cada semana
---     (agregadas desde MovHoras mediante LEFT JOIN con subconsultas).
---
---  2) DETALLE DE DEDUCCIONES: una fila por cada deducción aplicada en
---     cada una de las planillas devueltas en (1).
---
---  3) DETALLE DE ASISTENCIA/MOVIMIENTOS: una fila por cada movimiento
---     (MovHoras) generado por cada marca de asistencia.
--- =====================================================================
-
 IF OBJECT_ID(N'dbo.sp_GetPlanillaSemanal', N'P') IS NOT NULL
     DROP PROCEDURE [dbo].[sp_GetPlanillaSemanal];
 GO
@@ -32,7 +15,6 @@ CREATE PROCEDURE [dbo].[sp_GetPlanillaSemanal]
 AS
 BEGIN
     SET NOCOUNT ON;
-
     SET @outResultCode = 0;
 
     DECLARE
@@ -56,9 +38,10 @@ BEGIN
         END
 
         -- ============================================================
-        -- 1. Últimas @inCantidadSemanas planillas semanales del empleado
+        -- 1. Obtener de forma única las últimas N planillas semanales
         -- ============================================================
-        SELECT TOP (@inCantidadSemanas)
+        -- El DISTINCT aquí asegura que la tabla temporal base tenga exactamente 1 fila por planilla
+        SELECT DISTINCT TOP (@inCantidadSemanas)
             ps.id AS idPlanillaSemanal,
             ps.idSemana,
             s.FechaInicio,
@@ -72,7 +55,8 @@ BEGIN
         WHERE ps.idEmpleado = @inIdEmpleado
         ORDER BY s.FechaFin DESC;
 
-        -- REFACTORIZACIÓN (OPCIÓN 1): Reemplazo de OUTER APPLY por LEFT JOIN con subconsultas
+        -- RESULT SET 1: Grid Principal (Consolidado mediante LEFT JOIN y GROUP BY)
+        -- Para evitar que las horas dupliquen las planillas, agrupamos por los campos de la planilla
         SELECT
             pls.idPlanillaSemanal,
             pls.idSemana,
@@ -81,44 +65,22 @@ BEGIN
             pls.SalarioBruto,
             pls.TotalDeducciones,
             pls.SalarioNeto,
-            ISNULL(ho.QHorasOrdinarias, 0)      AS QHorasOrdinarias,
-            ISNULL(he.QHorasExtraNormales, 0)   AS QHorasExtraNormales,
-            ISNULL(hd.QHorasExtraDobles, 0)     AS QHorasExtraDobles
+            ISNULL(SUM(CASE WHEN mh.idTipoMov = 1 THEN mh.QHoras END), 0) AS QHorasOrdinarias,
+            ISNULL(SUM(CASE WHEN mh.idTipoMov = 2 THEN mh.QHoras END), 0) AS QHorasExtraNormales,
+            ISNULL(SUM(CASE WHEN mh.idTipoMov = 3 THEN mh.QHoras END), 0) AS QHorasExtraDobles
         FROM #PlanillasSemanales pls
-        
-        -- Subconsulta para agrupar e indexar Horas Ordinarias (idTipoMov = 1)
-        LEFT JOIN (
-            SELECT ma.idEmpleado, ma.Fecha, SUM(mh.QHoras) AS QHorasOrdinarias
-            FROM dbo.MovHoras mh
-            INNER JOIN dbo.MarcaAsistencia ma ON ma.id = mh.idAsistencia
-            WHERE mh.idTipoMov = 1 AND ma.idEmpleado = @inIdEmpleado
-            GROUP BY ma.idEmpleado, ma.Fecha
-        ) ho ON ho.idEmpleado = @inIdEmpleado AND ho.Fecha BETWEEN pls.FechaInicio AND pls.FechaFin
-        
-        -- Subconsulta para agrupar e indexar Horas Extra Normales (idTipoMov = 2)
-        LEFT JOIN (
-            SELECT ma.idEmpleado, ma.Fecha, SUM(mh.QHoras) AS QHorasExtraNormales
-            FROM dbo.MovHoras mh
-            INNER JOIN dbo.MarcaAsistencia ma ON ma.id = mh.idAsistencia
-            WHERE mh.idTipoMov = 2 AND ma.idEmpleado = @inIdEmpleado
-            GROUP BY ma.idEmpleado, ma.Fecha
-        ) he ON he.idEmpleado = @inIdEmpleado AND he.Fecha BETWEEN pls.FechaInicio AND pls.FechaFin
-        
-        -- Subconsulta para agrupar e indexar Horas Extra Dobles (idTipoMov = 3)
-        LEFT JOIN (
-            SELECT ma.idEmpleado, ma.Fecha, SUM(mh.QHoras) AS QHorasExtraDobles
-            FROM dbo.MovHoras mh
-            INNER JOIN dbo.MarcaAsistencia ma ON ma.id = mh.idAsistencia
-            WHERE mh.idTipoMov = 3 AND ma.idEmpleado = @inIdEmpleado
-            GROUP BY ma.idEmpleado, ma.Fecha
-        ) hd ON hd.idEmpleado = @inIdEmpleado AND hd.Fecha BETWEEN pls.FechaInicio AND pls.FechaFin
-        
+        LEFT JOIN dbo.MarcaAsistencia ma ON ma.idEmpleado = @inIdEmpleado AND ma.Fecha BETWEEN pls.FechaInicio AND pls.FechaFin
+        LEFT JOIN dbo.MovHoras mh ON mh.idAsistencia = ma.id
+        GROUP BY 
+            pls.idPlanillaSemanal, pls.idSemana, pls.FechaInicio, pls.FechaFin, 
+            pls.SalarioBruto, pls.TotalDeducciones, pls.SalarioNeto
         ORDER BY pls.FechaFin DESC;
 
         -- ============================================================
-        -- 2. Detalle de deducciones por planilla semanal
+        -- 2. Detalle de deducciones (Aplanado con DISTINCT)
         -- ============================================================
-        SELECT
+        -- Si un TipoMovimiento coincide con múltiples registros, el DISTINCT disuelve la repetición visual
+        SELECT DISTINCT
             mp.idPlanillaSemanal,
             td.id        AS idTipoDeduccion,
             td.Nombre    AS NombreDeduccion,
@@ -127,32 +89,30 @@ BEGIN
             mp.Monto     AS MontoDeduccion
         FROM dbo.MovPlanilla mp
         INNER JOIN #PlanillasSemanales pls ON pls.idPlanillaSemanal = mp.idPlanillaSemanal
-        INNER JOIN dbo.TipoMovement tm ON tm.id = mp.idTipoMovimiento
+        INNER JOIN dbo.TipoMovimiento tm ON tm.id = mp.idTipoMovimiento
         INNER JOIN dbo.TipoDeduccion td ON td.idTipoMovimiento = tm.id
         WHERE tm.Accion = 'D'
         ORDER BY mp.idPlanillaSemanal, td.Nombre ASC;
 
         -- ============================================================
-        -- 3. Detalle por día: marcas y movimientos generados
+        -- 3. Detalle por día: Consolidado por Marca de Asistencia con LEFT JOIN
         -- ============================================================
+        -- Agrupamos por la Marca de Asistencia para que se devuelva una sola fila por día,
+        -- sumando las horas y montos totales de los movimientos correspondientes a esa marca.
         SELECT
             pls.idPlanillaSemanal,
             ma.id            AS idMarcaAsistencia,
             ma.Fecha,
             ma.HoraEntrada,
             ma.HoraSalida,
-            mh.id            AS idMovHoras,
-            tm.id            AS idTipoMovimiento,
-            tm.Nombre        AS NombreTipoMovimiento,
-            mh.QHoras,
-            mh.Monto
+            ISNULL(SUM(mh.QHoras), 0) AS QHoras,
+            ISNULL(SUM(mh.Monto), 0)  AS Monto
         FROM #PlanillasSemanales pls
-        INNER JOIN dbo.MarcaAsistencia ma
-            ON ma.idEmpleado = @inIdEmpleado
-            AND ma.Fecha BETWEEN pls.FechaInicio AND pls.FechaFin
+        INNER JOIN dbo.MarcaAsistencia ma ON ma.idEmpleado = @inIdEmpleado AND ma.Fecha BETWEEN pls.FechaInicio AND pls.FechaFin
         LEFT JOIN dbo.MovHoras mh ON mh.idAsistencia = ma.id
-        LEFT JOIN dbo.TipoMovimiento tm ON tm.id = mh.idTipoMov
-        ORDER BY pls.idPlanillaSemanal, ma.Fecha ASC, tm.id ASC;
+        GROUP BY 
+            pls.idPlanillaSemanal, ma.id, ma.Fecha, ma.HoraEntrada, ma.HoraSalida
+        ORDER BY pls.idPlanillaSemanal, ma.Fecha ASC;
 
         -- ============================================================
         -- R07: Trazabilidad — Consultar planilla semanal

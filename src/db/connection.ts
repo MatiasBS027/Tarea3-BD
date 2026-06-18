@@ -3,7 +3,7 @@ import sql from 'mssql';
 const dbConfig: sql.config = {
     user: 'sa',
     password: 'Bd2Tarea2026!',
-    server: 'localhost',
+    server: '25.0.119.25',
     port: 1433,
     database: 'PlanillaDB',
     options: {

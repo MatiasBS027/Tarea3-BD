@@ -2223,3 +2223,31 @@ BEGIN
     END CATCH;
 END;
 GO
+
+-- =====================================================================
+-- EJECUCIÓN DEL PROCEDIMIENTO
+-- =====================================================================
+PRINT 'Ejecutando procedimiento almacenado de carga de operaciones...';
+DECLARE @resultadoEjecucion INT;
+EXEC dbo.sp_CargarOperacionesXML @outResultCode = @resultadoEjecucion OUTPUT;
+
+PRINT 'Código de retorno del SP: ' + CAST(@resultadoEjecucion AS VARCHAR(10));
+GO
+
+-- =====================================================================
+-- VERIFICACIÓN Y ESTADÍSTICAS POST-CARGA
+-- =====================================================================
+PRINT '======================================================================';
+PRINT 'ESTADÍSTICAS FINALES DE LA BASE DE DATOS TRAS OPERACIONES XML';
+PRINT '======================================================================';
+SELECT 'Empleado'                 AS Tabla, COUNT(*) AS Filas FROM dbo.Empleado UNION ALL
+SELECT 'Usuario',                  COUNT(*) FROM dbo.Usuario UNION ALL
+SELECT 'MarcaAsistencia',          COUNT(*) FROM dbo.MarcaAsistencia UNION ALL
+SELECT 'HorarioJornada',           COUNT(*) FROM dbo.HorarioJornada UNION ALL
+SELECT 'DeduccionEmpleado',        COUNT(*) FROM dbo.DeduccionEmpleado UNION ALL
+SELECT 'PlanillaSemanal',          COUNT(*) FROM dbo.PlanillaSemanal UNION ALL
+SELECT 'PlanillaMensual',          COUNT(*) FROM dbo.PlanillaMensual UNION ALL
+SELECT 'MovHoras',                 COUNT(*) FROM dbo.MovHoras UNION ALL
+SELECT 'MovPlanilla',              COUNT(*) FROM dbo.MovPlanilla UNION ALL
+SELECT 'DBError',                  COUNT(*) FROM dbo.DBError;
+GO

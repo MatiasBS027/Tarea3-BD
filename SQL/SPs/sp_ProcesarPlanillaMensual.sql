@@ -6,7 +6,7 @@ IF OBJECT_ID(N'dbo.sp_ProcesarPlanillaMensual', N'P') IS NOT NULL
 GO
 
 -- =====================================================================
--- sp_ProcesarPlanillaMensual (CORREGIDO - HERENCIA DE JORNADAS ENTRANTE)
+-- sp_ProcesarPlanillaMensual
 -- =====================================================================
 CREATE PROCEDURE [dbo].[sp_ProcesarPlanillaMensual]
     @inFechaJueves DATE
