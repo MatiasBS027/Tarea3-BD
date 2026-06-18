@@ -1204,3 +1204,211 @@ select:focus-visible {
 ::-webkit-scrollbar-thumb:hover {
     background: #3A3A50;
 }
+/* ============================================================
+   Planilla — tarjetas colapsables por período
+   ============================================================ */
+
+.planilla-lista {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.planilla-card {
+    border: 1px solid rgba(102, 126, 234, 0.18);
+    border-radius: 12px;
+    overflow: hidden;
+    background: rgba(255,255,255,0.97);
+    box-shadow: 0 2px 8px rgba(15,23,42,0.06);
+    transition: box-shadow 0.2s;
+}
+
+.planilla-card.open {
+    box-shadow: 0 4px 20px rgba(102,126,234,0.13);
+}
+
+.planilla-card-header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 18px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.15s;
+}
+
+.planilla-card-header:hover {
+    background: rgba(102,126,234,0.05);
+}
+
+.planilla-card-periodo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 220px;
+}
+
+.planilla-card-icon {
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+.planilla-card-fechas {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #1f2937;
+    white-space: nowrap;
+}
+
+.planilla-card-kpis {
+    display: flex;
+    gap: 6px;
+    flex: 1;
+    flex-wrap: wrap;
+}
+
+.planilla-kpi {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    padding: 4px 12px;
+    border-radius: 8px;
+    background: rgba(243,244,246,0.8);
+    min-width: 110px;
+    flex: 1;
+}
+
+.planilla-kpi-bruto  { background: rgba(219,234,254,0.7); }
+.planilla-kpi-deduc  { background: rgba(254,226,226,0.7); }
+.planilla-kpi-neto   { background: rgba(209,250,229,0.8); }
+
+.planilla-kpi-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #6b7280;
+    font-weight: 600;
+}
+
+.planilla-kpi-val {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #111827;
+    white-space: nowrap;
+}
+
+.planilla-kpi-neto .planilla-kpi-val { color: #065f46; }
+.planilla-kpi-deduc .planilla-kpi-val { color: #991b1b; }
+.planilla-kpi-bruto .planilla-kpi-val { color: #1e40af; }
+
+.planilla-card-chevron {
+    font-size: 1.1rem;
+    color: #9ca3af;
+    transition: transform 0.2s;
+    flex-shrink: 0;
+}
+
+.planilla-card.open .planilla-card-chevron {
+    transform: rotate(180deg);
+}
+
+/* Cuerpo colapsable */
+.planilla-card-body {
+    display: none;
+    padding: 0 18px 18px;
+    border-top: 1px solid rgba(102,126,234,0.10);
+    gap: 18px;
+    flex-direction: column;
+}
+
+.planilla-card.open .planilla-card-body {
+    display: flex;
+}
+
+/* Sub-tablas dentro de cada tarjeta */
+.planilla-subtabla {
+    flex: 1;
+}
+
+.planilla-subtitulo {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #6b7280;
+    margin: 14px 0 8px;
+}
+
+.ptable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.ptable thead th {
+    padding: 7px 10px;
+    text-align: left;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: #6b7280;
+    border-bottom: 2px solid rgba(102,126,234,0.15);
+    background: rgba(249,250,251,0.8);
+}
+
+.ptable thead th.num { text-align: right; }
+
+.ptable tbody td {
+    padding: 7px 10px;
+    color: #374151;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.ptable tbody tr:last-child td { border-bottom: none; }
+
+.ptable tbody tr:hover td { background: rgba(102,126,234,0.04); }
+
+.ptable td.num        { text-align: right; font-variant-numeric: tabular-nums; }
+.ptable td.deduccion  { color: #991b1b; font-weight: 600; }
+.ptable td.neto       { color: #065f46; font-weight: 600; }
+
+.badge-cell { text-align: center; }
+.badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    background: rgba(102,126,234,0.12);
+    color: #3730a3;
+}
+
+/* Modo oscuro (página de empleados usa .empleados-page) */
+.page-content .planilla-card {
+    background: #16161f;
+    border-color: rgba(255,255,255,0.08);
+}
+
+.page-content .planilla-card-header:hover { background: rgba(255,255,255,0.04); }
+.page-content .planilla-card-fechas       { color: #f3f4f6; }
+.page-content .planilla-kpi               { background: rgba(255,255,255,0.06); }
+.page-content .planilla-kpi-bruto         { background: rgba(37,99,235,0.18); }
+.page-content .planilla-kpi-deduc         { background: rgba(220,38,38,0.18); }
+.page-content .planilla-kpi-neto          { background: rgba(16,185,129,0.18); }
+.page-content .planilla-kpi-label         { color: #9ca3af; }
+.page-content .planilla-kpi-val           { color: #f9fafb; }
+.page-content .planilla-kpi-neto .planilla-kpi-val  { color: #6ee7b7; }
+.page-content .planilla-kpi-deduc .planilla-kpi-val { color: #fca5a5; }
+.page-content .planilla-kpi-bruto .planilla-kpi-val { color: #93c5fd; }
+.page-content .planilla-card-body  { border-color: rgba(255,255,255,0.07); }
+.page-content .planilla-subtitulo  { color: #6b7280; }
+.page-content .ptable thead th     { color: #9ca3af; background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.08); }
+.page-content .ptable tbody td     { color: #d1d5db; border-color: rgba(255,255,255,0.05); }
+.page-content .ptable tbody tr:hover td { background: rgba(255,255,255,0.03); }
+.page-content .ptable td.deduccion { color: #fca5a5; }
+.page-content .ptable td.neto      { color: #6ee7b7; }
+.page-content .badge               { background: rgba(139,92,246,0.2); color: #c4b5fd; }
