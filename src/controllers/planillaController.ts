@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { getPool, sql } from '../db/connection';
 import { getErrorMessage, getHttpStatus } from '../utils/errorhelper';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
+import type { IRecordSet } from 'mssql';
 
 // GET /api/planilla/semanal/:idEmpleado
 export async function getPlanillaSemanal(req: AuthenticatedRequest, res: Response): Promise<void> {
@@ -32,13 +33,15 @@ export async function getPlanillaSemanal(req: AuthenticatedRequest, res: Respons
             return;
         }
 
+        const recordsets = result.recordsets as IRecordSet<any>[];
+
         res.status(200).json({
             success: true,
             outResultCode,
             data: {
-                planillas:    result.recordsets[0] ?? [],   // RS1: grid principal
-                deducciones:  result.recordsets[1] ?? [],   // RS2: detalle deducciones
-                asistencias:  result.recordsets[2] ?? [],   // RS3: detalle por día
+                planillas:    recordsets[0] ?? [],   // RS1: grid principal
+                deducciones:  recordsets[1] ?? [],   // RS2: detalle deducciones
+                asistencias:  recordsets[2] ?? [],   // RS3: detalle por día
             }
         });
     } catch (error) {
@@ -80,13 +83,15 @@ export async function getPlanillaMensual(req: AuthenticatedRequest, res: Respons
             return;
         }
 
+        const recordsets = result.recordsets as IRecordSet<any>[];
+
         res.status(200).json({
             success: true,
             outResultCode,
             data: {
-                planillas:   result.recordsets[0] ?? [],   // RS1: grid principal
-                deducciones: result.recordsets[1] ?? [],   // RS2: deducciones acumuladas
-                semanas:     result.recordsets[2] ?? [],   // RS3: resumen por semana
+                planillas:   recordsets[0] ?? [],   // RS1: grid principal
+                deducciones: recordsets[1] ?? [],   // RS2: deducciones acumuladas
+                semanas:     recordsets[2] ?? [],   // RS3: resumen por semana
             }
         });
     } catch (error) {

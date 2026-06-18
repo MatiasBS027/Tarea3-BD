@@ -76,9 +76,21 @@ class LoginManager {
                     localStorage.setItem('userTipo', response.usuario?.tipo ?? '2');
                     localStorage.setItem('userId', String(response.usuario?.id ?? ''));
                 }
-                // Redirigir a la página principal de empleados después de 1 segundo
+                // Redirigir según tipo de usuario
                 setTimeout(() => {
-                    window.location.href = '/empleados.html';
+                    const tipo = response.usuario?.tipo ?? '2';
+                    if (tipo === '1') {
+                        window.location.href = '/empleados.html';
+                    }
+                    else {
+                        const idEmpleado = response.usuario?.idEmpleado;
+                        if (idEmpleado) {
+                            window.location.href = `/empleado-view.html?id=${idEmpleado}`;
+                        }
+                        else {
+                            window.location.href = '/empleado-view.html';
+                        }
+                    }
                 }, 1000);
             }
             else if (response.outResultCode === 50003) {

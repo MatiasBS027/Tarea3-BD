@@ -7,6 +7,7 @@ import authRouter from './routes/auth';
 import puestosRouter from './routes/puestos';
 import tiposMovimientoRouter from './routes/tiposMovimiento';
 import bitacoraRouter from './routes/bitacora';
+import planillaRouter from './routes/planilla';
 
 const app = express();
 const PORT = 3000;
@@ -29,6 +30,7 @@ app.use('/api/empleados', authenticate, empleadosRouter);
 app.use('/api/puestos', authenticate, puestosRouter);
 app.use('/api/tiposMovimiento', authenticate, tiposMovimientoRouter);
 app.use('/api/bitacora', authenticate, bitacoraRouter);
+app.use('/api/planilla', authenticate, planillaRouter);
 
 async function startServer(): Promise<void> {
     try {

@@ -12,6 +12,7 @@ interface LoginResponse {
         id: number;
         username: string;
         tipo: string;
+        idEmpleado?: number | null;
     };
 }
 

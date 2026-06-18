@@ -12,6 +12,7 @@ interface LoginResponse {
         id: number;
         username: string;
         tipo: string;
+        idEmpleado?: number | null;
     };
 }
 
@@ -49,6 +50,16 @@ export class AuthController {
                 const tipo = String(result.output.outTipo ?? '2');
                 const token = this.generateToken(String(username), Number(idUsuario), tipo);
 
+                // Si es empleado (tipo 2), obtener su idEmpleado
+                let idEmpleado: number | null = null;
+                if (tipo === '2') {
+                    const empResult = await pool
+                        .request()
+                        .input('inIdUsuario', sql.Int, Number(idUsuario))
+                        .query('SELECT id FROM dbo.Empleado WHERE idUsuario = @inIdUsuario AND Activo = 1');
+                    idEmpleado = empResult.recordset?.[0]?.id ?? null;
+                }
+
                 res.status(200).json({
                     success: true,
                     outResultCode: 0,
@@ -58,6 +69,7 @@ export class AuthController {
                         id: Number(idUsuario),
                         username: String(username),
                         tipo,
+                        idEmpleado,
                     },
                 } as LoginResponse);
                 return;
