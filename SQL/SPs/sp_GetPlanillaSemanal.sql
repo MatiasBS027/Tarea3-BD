@@ -2,34 +2,20 @@ USE [PlanillaDB];
 GO
 
 -- =====================================================================
--- SP: sp_GetPlanillaSemanal (R04)
+-- SP: sp_GetPlanillaSemanal (R04) - Versión Refactorizada (Opción 1)
 --
 -- Devuelve 3 result sets para el empleado indicado:
 --
 --  1) GRID PRINCIPAL: últimas @inCantidadSemanas planillas semanales,
 --     con SalarioBruto, TotalDeducciones, SalarioNeto y la cantidad de
 --     horas ordinarias / extra normales / extra dobles de cada semana
---     (agregadas desde MovHoras, ya que PlanillaSemanal no las guarda
---     -- ver AGENTS.md, denormalización evitada).
+--     (agregadas desde MovHoras mediante LEFT JOIN con subconsultas).
 --
 --  2) DETALLE DE DEDUCCIONES: una fila por cada deducción aplicada en
---     cada una de las planillas devueltas en (1). Incluye nombre de la
---     deducción, si es porcentual y el porcentaje aplicado, y el monto
---     (tomado de MovPlanilla, ya calculado por sp_ProcesarPlanillaSemanal).
---     El front filtra por idPlanillaSemanal al hacer click en el monto
---     de deducciones de la fila correspondiente.
+--     cada una de las planillas devueltas en (1).
 --
 --  3) DETALLE DE ASISTENCIA/MOVIMIENTOS: una fila por cada movimiento
---     (MovHoras) generado por cada marca de asistencia, para todas las
---     semanas devueltas en (1). Incluye fecha, hora entrada, hora
---     salida, tipo de movimiento (ordinaria/extra normal/extra doble),
---     horas y monto devengado. El front filtra por idPlanillaSemanal
---     (o por el rango de fechas de la semana) al hacer click en el
---     salario bruto de la fila correspondiente.
---
--- R07 Trazabilidad: se inserta en BitacoraEvento (TipoEvento = 20,
--- "Consultar planilla semanal") con Empleado.Id, FechaInicio y FechaFin
--- del rango total consultado.
+--     (MovHoras) generado por cada marca de asistencia.
 -- =====================================================================
 
 IF OBJECT_ID(N'dbo.sp_GetPlanillaSemanal', N'P') IS NOT NULL
@@ -86,6 +72,7 @@ BEGIN
         WHERE ps.idEmpleado = @inIdEmpleado
         ORDER BY s.FechaFin DESC;
 
+        -- REFACTORIZACIÓN (OPCIÓN 1): Reemplazo de OUTER APPLY por LEFT JOIN con subconsultas
         SELECT
             pls.idPlanillaSemanal,
             pls.idSemana,
@@ -98,35 +85,38 @@ BEGIN
             ISNULL(he.QHorasExtraNormales, 0)   AS QHorasExtraNormales,
             ISNULL(hd.QHorasExtraDobles, 0)     AS QHorasExtraDobles
         FROM #PlanillasSemanales pls
-        OUTER APPLY (
-            SELECT SUM(mh.QHoras) AS QHorasOrdinarias
+        
+        -- Subconsulta para agrupar e indexar Horas Ordinarias (idTipoMov = 1)
+        LEFT JOIN (
+            SELECT ma.idEmpleado, ma.Fecha, SUM(mh.QHoras) AS QHorasOrdinarias
             FROM dbo.MovHoras mh
             INNER JOIN dbo.MarcaAsistencia ma ON ma.id = mh.idAsistencia
-            WHERE mh.idTipoMov = 1
-              AND ma.idEmpleado = @inIdEmpleado
-              AND ma.Fecha BETWEEN pls.FechaInicio AND pls.FechaFin
-        ) ho
-        OUTER APPLY (
-            SELECT SUM(mh.QHoras) AS QHorasExtraNormales
+            WHERE mh.idTipoMov = 1 AND ma.idEmpleado = @inIdEmpleado
+            GROUP BY ma.idEmpleado, ma.Fecha
+        ) ho ON ho.idEmpleado = @inIdEmpleado AND ho.Fecha BETWEEN pls.FechaInicio AND pls.FechaFin
+        
+        -- Subconsulta para agrupar e indexar Horas Extra Normales (idTipoMov = 2)
+        LEFT JOIN (
+            SELECT ma.idEmpleado, ma.Fecha, SUM(mh.QHoras) AS QHorasExtraNormales
             FROM dbo.MovHoras mh
             INNER JOIN dbo.MarcaAsistencia ma ON ma.id = mh.idAsistencia
-            WHERE mh.idTipoMov = 2
-              AND ma.idEmpleado = @inIdEmpleado
-              AND ma.Fecha BETWEEN pls.FechaInicio AND pls.FechaFin
-        ) he
-        OUTER APPLY (
-            SELECT SUM(mh.QHoras) AS QHorasExtraDobles
+            WHERE mh.idTipoMov = 2 AND ma.idEmpleado = @inIdEmpleado
+            GROUP BY ma.idEmpleado, ma.Fecha
+        ) he ON he.idEmpleado = @inIdEmpleado AND he.Fecha BETWEEN pls.FechaInicio AND pls.FechaFin
+        
+        -- Subconsulta para agrupar e indexar Horas Extra Dobles (idTipoMov = 3)
+        LEFT JOIN (
+            SELECT ma.idEmpleado, ma.Fecha, SUM(mh.QHoras) AS QHorasExtraDobles
             FROM dbo.MovHoras mh
             INNER JOIN dbo.MarcaAsistencia ma ON ma.id = mh.idAsistencia
-            WHERE mh.idTipoMov = 3
-              AND ma.idEmpleado = @inIdEmpleado
-              AND ma.Fecha BETWEEN pls.FechaInicio AND pls.FechaFin
-        ) hd
+            WHERE mh.idTipoMov = 3 AND ma.idEmpleado = @inIdEmpleado
+            GROUP BY ma.idEmpleado, ma.Fecha
+        ) hd ON hd.idEmpleado = @inIdEmpleado AND hd.Fecha BETWEEN pls.FechaInicio AND pls.FechaFin
+        
         ORDER BY pls.FechaFin DESC;
 
         -- ============================================================
-        -- 2. Detalle de deducciones por planilla semanal (click en
-        --    TotalDeducciones). El front filtra por idPlanillaSemanal.
+        -- 2. Detalle de deducciones por planilla semanal
         -- ============================================================
         SELECT
             mp.idPlanillaSemanal,
@@ -137,15 +127,13 @@ BEGIN
             mp.Monto     AS MontoDeduccion
         FROM dbo.MovPlanilla mp
         INNER JOIN #PlanillasSemanales pls ON pls.idPlanillaSemanal = mp.idPlanillaSemanal
-        INNER JOIN dbo.TipoMovimiento tm ON tm.id = mp.idTipoMovimiento
+        INNER JOIN dbo.TipoMovement tm ON tm.id = mp.idTipoMovimiento
         INNER JOIN dbo.TipoDeduccion td ON td.idTipoMovimiento = tm.id
         WHERE tm.Accion = 'D'
         ORDER BY mp.idPlanillaSemanal, td.Nombre ASC;
 
         -- ============================================================
-        -- 3. Detalle por día: hora entrada/salida y movimientos
-        --    generados por cada asistencia (click en SalarioBruto).
-        --    El front filtra por idPlanillaSemanal.
+        -- 3. Detalle por día: marcas y movimientos generados
         -- ============================================================
         SELECT
             pls.idPlanillaSemanal,
@@ -168,7 +156,6 @@ BEGIN
 
         -- ============================================================
         -- R07: Trazabilidad — Consultar planilla semanal
-        --      (Empleado.Id, FechaInicio y FechaFin del rango consultado)
         -- ============================================================
         SELECT
             @fechaInicioRng = MIN(FechaInicio),
