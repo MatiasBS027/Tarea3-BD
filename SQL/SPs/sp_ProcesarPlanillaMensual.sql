@@ -169,7 +169,7 @@ BEGIN
             INSERT INTO dbo.PlanillaSemanal (idEmpleado, idSemana, SalarioBruto, TotalDeducciones, SalarioNeto)
             SELECT E.id, @idSemanaNueva, 0, 0, 0
             FROM dbo.Empleado E
-            WHERE E.EsActivo = 1
+            WHERE E.Activo = 1
               AND NOT EXISTS (
                   SELECT 1
                   FROM dbo.PlanillaSemanal PS
