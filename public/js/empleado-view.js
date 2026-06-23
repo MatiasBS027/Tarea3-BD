@@ -133,98 +133,97 @@ class EmpleadoViewPage {
         }
     }
     renderPlanillaSemanal(planillas, deducciones, asistencias) {
-        // Agrupar sub-datos por semana
-        const deducsPorSemana = new Map();
-        for (const d of deducciones) {
-            if (!deducsPorSemana.has(d.idPlanillaSemanal)) deducsPorSemana.set(d.idPlanillaSemanal, []);
-            deducsPorSemana.get(d.idPlanillaSemanal).push(d);
-        }
-        const asistPorSemana = new Map();
-        for (const a of asistencias) {
-            if (!asistPorSemana.has(a.idPlanillaSemanal)) asistPorSemana.set(a.idPlanillaSemanal, []);
-            asistPorSemana.get(a.idPlanillaSemanal).push(a);
-        }
-
-        let html = '<div class="planilla-lista">';
+        // Grid principal
+        let html = `
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Semana</th>
+                        <th>H. Ordinarias</th>
+                        <th>H. Extra 1.5×</th>
+                        <th>H. Extra 2×</th>
+                        <th>Salario Bruto</th>
+                        <th>Deducciones</th>
+                        <th>Salario Neto</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
         for (const p of planillas) {
-            const id = p.idPlanillaSemanal;
-            const deducs = deducsPorSemana.get(id) ?? [];
-            const dias   = asistPorSemana.get(id) ?? [];
-
-            // Tabla de deducciones
-            let htmlDeducs = '';
-            if (deducs.length > 0) {
-                htmlDeducs = `
-                <div class="planilla-subtabla">
-                    <p class="planilla-subtitulo">Deducciones</p>
-                    <table class="ptable">
-                        <thead><tr><th>Concepto</th><th>Tipo</th><th class="num">Monto</th></tr></thead>
-                        <tbody>
-                            ${deducs.map(d => `<tr>
-                                <td>${escapeHtml(d.NombreDeduccion)}</td>
-                                <td class="badge-cell"><span class="badge">${d.EsPorcentual ? (d.PorcentajeAplicado ?? '') + '%' : 'Fijo'}</span></td>
-                                <td class="num deduccion">${fmt(d.MontoDeduccion)}</td>
-                            </tr>`).join('')}
-                        </tbody>
-                    </table>
-                </div>`;
-            }
-
-            // Tabla de asistencia diaria
-            let htmlDias = '';
-            if (dias.length > 0) {
-                htmlDias = `
-                <div class="planilla-subtabla">
-                    <p class="planilla-subtitulo">Asistencia diaria</p>
-                    <table class="ptable">
-                        <thead><tr><th>Fecha</th><th>Entrada</th><th>Salida</th><th class="num">Horas</th><th class="num">Monto</th></tr></thead>
-                        <tbody>
-                            ${dias.map(d => `<tr>
-                                <td>${formatearFecha(d.Fecha)}</td>
-                                <td>${d.HoraEntrada ?? '—'}</td>
-                                <td>${d.HoraSalida ?? '—'}</td>
-                                <td class="num">${d.QHoras}</td>
-                                <td class="num">${fmt(d.Monto)}</td>
-                            </tr>`).join('')}
-                        </tbody>
-                    </table>
-                </div>`;
-            }
-
             html += `
-            <div class="planilla-card">
-                <button class="planilla-card-header" onclick="this.closest('.planilla-card').classList.toggle('open')" type="button">
-                    <div class="planilla-card-periodo">
-                        <span class="planilla-card-icon">📅</span>
-                        <span class="planilla-card-fechas">${formatearFecha(p.FechaInicio)} — ${formatearFecha(p.FechaFin)}</span>
-                    </div>
-                    <div class="planilla-card-kpis">
-                        <div class="planilla-kpi">
-                            <span class="planilla-kpi-label">Horas</span>
-                            <span class="planilla-kpi-val">${p.QHorasOrdinarias}h + ${p.QHorasExtraNormales}h + ${p.QHorasExtraDobles}h</span>
-                        </div>
-                        <div class="planilla-kpi planilla-kpi-bruto">
-                            <span class="planilla-kpi-label">Bruto</span>
-                            <span class="planilla-kpi-val">${fmt(p.SalarioBruto)}</span>
-                        </div>
-                        <div class="planilla-kpi planilla-kpi-deduc">
-                            <span class="planilla-kpi-label">Deducciones</span>
-                            <span class="planilla-kpi-val">${fmt(p.TotalDeducciones)}</span>
-                        </div>
-                        <div class="planilla-kpi planilla-kpi-neto">
-                            <span class="planilla-kpi-label">Neto</span>
-                            <span class="planilla-kpi-val">${fmt(p.SalarioNeto)}</span>
-                        </div>
-                    </div>
-                    <span class="planilla-card-chevron">▾</span>
-                </button>
-                <div class="planilla-card-body">
-                    ${htmlDeducs}
-                    ${htmlDias}
-                </div>
-            </div>`;
+                <tr>
+                    <td>${formatearFecha(p.FechaInicio)} — ${formatearFecha(p.FechaFin)}</td>
+                    <td>${p.QHorasOrdinarias}</td>
+                    <td>${p.QHorasExtraNormales}</td>
+                    <td>${p.QHorasExtraDobles}</td>
+                    <td>${fmt(p.SalarioBruto)}</td>
+                    <td>${fmt(p.TotalDeducciones)}</td>
+                    <td>${fmt(p.SalarioNeto)}</td>
+                </tr>
+            `;
         }
-        html += '</div>';
+        html += `</tbody></table>`;
+        // Detalle de deducciones agrupado por semana
+        if (deducciones.length > 0) {
+            const porSemana = new Map();
+            for (const d of deducciones) {
+                if (!porSemana.has(d.idPlanillaSemanal))
+                    porSemana.set(d.idPlanillaSemanal, []);
+                porSemana.get(d.idPlanillaSemanal).push(d);
+            }
+            html += `<h3 class="subtitulo-seccion">Detalle de deducciones por semana</h3>`;
+            for (const [idPS, deducs] of porSemana) {
+                const semana = planillas.find(p => p.idPlanillaSemanal === idPS);
+                const titulo = semana
+                    ? `${formatearFecha(semana.FechaInicio)} — ${formatearFecha(semana.FechaFin)}`
+                    : `Semana #${idPS}`;
+                html += `<p class="detalle-label">${titulo}</p>`;
+                html += `<table class="data-table data-table-sm"><thead><tr>
+                    <th>Deducción</th><th>Tipo</th><th>Monto</th>
+                </tr></thead><tbody>`;
+                for (const d of deducs) {
+                    const tipo = d.EsPorcentual
+                        ? `${d.PorcentajeAplicado ?? ''}%`
+                        : 'Fijo';
+                    html += `<tr>
+                        <td>${escapeHtml(d.NombreDeduccion)}</td>
+                        <td>${tipo}</td>
+                        <td>${fmt(d.MontoDeduccion)}</td>
+                    </tr>`;
+                }
+                html += `</tbody></table>`;
+            }
+        }
+        // Detalle de asistencia diaria por semana
+        if (asistencias.length > 0) {
+            const porSemana = new Map();
+            for (const a of asistencias) {
+                if (!porSemana.has(a.idPlanillaSemanal))
+                    porSemana.set(a.idPlanillaSemanal, []);
+                porSemana.get(a.idPlanillaSemanal).push(a);
+            }
+            html += `<h3 class="subtitulo-seccion">Asistencia diaria por semana</h3>`;
+            for (const [idPS, dias] of porSemana) {
+                const semana = planillas.find(p => p.idPlanillaSemanal === idPS);
+                const titulo = semana
+                    ? `${formatearFecha(semana.FechaInicio)} — ${formatearFecha(semana.FechaFin)}`
+                    : `Semana #${idPS}`;
+                html += `<p class="detalle-label">${titulo}</p>`;
+                html += `<table class="data-table data-table-sm"><thead><tr>
+                    <th>Fecha</th><th>Entrada</th><th>Salida</th><th>Horas</th><th>Monto</th>
+                </tr></thead><tbody>`;
+                for (const d of dias) {
+                    html += `<tr>
+                        <td>${formatearFecha(d.Fecha)}</td>
+                        <td>${d.HoraEntrada ?? '—'}</td>
+                        <td>${d.HoraSalida ?? '—'}</td>
+                        <td>${d.QHoras}</td>
+                        <td>${fmt(d.Monto)}</td>
+                    </tr>`;
+                }
+                html += `</tbody></table>`;
+            }
+        }
         return html;
     }
     // ----------------------------------------------------------------
@@ -262,97 +261,96 @@ class EmpleadoViewPage {
         }
     }
     renderPlanillaMensual(planillas, deducciones, semanas) {
-        // Agrupar sub-datos por mes
-        const deducsPorMes = new Map();
-        for (const d of deducciones) {
-            if (!deducsPorMes.has(d.idPlanillaMensual)) deducsPorMes.set(d.idPlanillaMensual, []);
-            deducsPorMes.get(d.idPlanillaMensual).push(d);
-        }
-        const semanasPorMes = new Map();
-        for (const s of semanas) {
-            if (!semanasPorMes.has(s.idPlanillaMensual)) semanasPorMes.set(s.idPlanillaMensual, []);
-            semanasPorMes.get(s.idPlanillaMensual).push(s);
-        }
-
-        let html = '<div class="planilla-lista">';
+        // Grid principal
+        let html = `
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Mes</th>
+                        <th>H. Ordinarias</th>
+                        <th>H. Extra 1.5×</th>
+                        <th>H. Extra 2×</th>
+                        <th>Salario Bruto</th>
+                        <th>Deducciones</th>
+                        <th>Salario Neto</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
         for (const p of planillas) {
-            const id = p.idPlanillaMensual;
-            const deducs   = deducsPorMes.get(id) ?? [];
-            const semanasm = semanasPorMes.get(id) ?? [];
-
-            // Tabla de deducciones acumuladas
-            let htmlDeducs = '';
-            if (deducs.length > 0) {
-                htmlDeducs = `
-                <div class="planilla-subtabla">
-                    <p class="planilla-subtitulo">Deducciones acumuladas</p>
-                    <table class="ptable">
-                        <thead><tr><th>Concepto</th><th>Tipo</th><th class="num">Total</th></tr></thead>
-                        <tbody>
-                            ${deducs.map(d => `<tr>
-                                <td>${escapeHtml(d.NombreDeduccion)}</td>
-                                <td class="badge-cell"><span class="badge">${d.EsPorcentual ? (d.PorcentajeAplicado ?? '') + '%' : 'Fijo'}</span></td>
-                                <td class="num deduccion">${fmt(d.MontoDeduccion)}</td>
-                            </tr>`).join('')}
-                        </tbody>
-                    </table>
-                </div>`;
-            }
-
-            // Tabla de desglose semanal
-            let htmlSemanas = '';
-            if (semanasm.length > 0) {
-                htmlSemanas = `
-                <div class="planilla-subtabla">
-                    <p class="planilla-subtitulo">Desglose semanal</p>
-                    <table class="ptable">
-                        <thead><tr><th>Semana</th><th class="num">Bruto</th><th class="num">Deducciones</th><th class="num">Neto</th></tr></thead>
-                        <tbody>
-                            ${semanasm.map(s => `<tr>
-                                <td>${formatearFecha(s.FechaInicio)} — ${formatearFecha(s.FechaFin)}</td>
-                                <td class="num">${fmt(s.SalarioBruto)}</td>
-                                <td class="num deduccion">${fmt(s.TotalDeducciones)}</td>
-                                <td class="num neto">${fmt(s.SalarioNeto)}</td>
-                            </tr>`).join('')}
-                        </tbody>
-                    </table>
-                </div>`;
-            }
-
             html += `
-            <div class="planilla-card">
-                <button class="planilla-card-header" onclick="this.closest('.planilla-card').classList.toggle('open')" type="button">
-                    <div class="planilla-card-periodo">
-                        <span class="planilla-card-icon">🗓️</span>
-                        <span class="planilla-card-fechas">${formatearFecha(p.FechaInicio)} — ${formatearFecha(p.FechaFin)}</span>
-                    </div>
-                    <div class="planilla-card-kpis">
-                        <div class="planilla-kpi">
-                            <span class="planilla-kpi-label">Horas</span>
-                            <span class="planilla-kpi-val">${p.QHorasOrdinarias}h + ${p.QHorasExtraNormales}h + ${p.QHorasExtraDobles}h</span>
-                        </div>
-                        <div class="planilla-kpi planilla-kpi-bruto">
-                            <span class="planilla-kpi-label">Bruto</span>
-                            <span class="planilla-kpi-val">${fmt(p.SalarioBruto)}</span>
-                        </div>
-                        <div class="planilla-kpi planilla-kpi-deduc">
-                            <span class="planilla-kpi-label">Deducciones</span>
-                            <span class="planilla-kpi-val">${fmt(p.TotalDeducciones)}</span>
-                        </div>
-                        <div class="planilla-kpi planilla-kpi-neto">
-                            <span class="planilla-kpi-label">Neto</span>
-                            <span class="planilla-kpi-val">${fmt(p.SalarioNeto)}</span>
-                        </div>
-                    </div>
-                    <span class="planilla-card-chevron">▾</span>
-                </button>
-                <div class="planilla-card-body">
-                    ${htmlDeducs}
-                    ${htmlSemanas}
-                </div>
-            </div>`;
+                <tr>
+                    <td>${formatearFecha(p.FechaInicio)} — ${formatearFecha(p.FechaFin)}</td>
+                    <td>${p.QHorasOrdinarias}</td>
+                    <td>${p.QHorasExtraNormales}</td>
+                    <td>${p.QHorasExtraDobles}</td>
+                    <td>${fmt(p.SalarioBruto)}</td>
+                    <td>${fmt(p.TotalDeducciones)}</td>
+                    <td>${fmt(p.SalarioNeto)}</td>
+                </tr>
+            `;
         }
-        html += '</div>';
+        html += `</tbody></table>`;
+        // Deducciones acumuladas por mes
+        if (deducciones.length > 0) {
+            const porMes = new Map();
+            for (const d of deducciones) {
+                if (!porMes.has(d.idPlanillaMensual))
+                    porMes.set(d.idPlanillaMensual, []);
+                porMes.get(d.idPlanillaMensual).push(d);
+            }
+            html += `<h3 class="subtitulo-seccion">Deducciones acumuladas por mes</h3>`;
+            for (const [idPM, deducs] of porMes) {
+                const mes = planillas.find(p => p.idPlanillaMensual === idPM);
+                const titulo = mes
+                    ? `${formatearFecha(mes.FechaInicio)} — ${formatearFecha(mes.FechaFin)}`
+                    : `Mes #${idPM}`;
+                html += `<p class="detalle-label">${titulo}</p>`;
+                html += `<table class="data-table data-table-sm"><thead><tr>
+                    <th>Deducción</th><th>Tipo</th><th>Total</th>
+                </tr></thead><tbody>`;
+                for (const d of deducs) {
+                    const tipo = d.EsPorcentual
+                        ? `${d.PorcentajeAplicado ?? ''}%`
+                        : 'Fijo';
+                    html += `<tr>
+                        <td>${escapeHtml(d.NombreDeduccion)}</td>
+                        <td>${tipo}</td>
+                        <td>${fmt(d.MontoDeduccion)}</td>
+                    </tr>`;
+                }
+                html += `</tbody></table>`;
+            }
+        }
+        // Resumen semanal dentro de cada mes
+        if (semanas.length > 0) {
+            const porMes = new Map();
+            for (const s of semanas) {
+                if (!porMes.has(s.idPlanillaMensual))
+                    porMes.set(s.idPlanillaMensual, []);
+                porMes.get(s.idPlanillaMensual).push(s);
+            }
+            html += `<h3 class="subtitulo-seccion">Desglose semanal por mes</h3>`;
+            for (const [idPM, semanasDelMes] of porMes) {
+                const mes = planillas.find(p => p.idPlanillaMensual === idPM);
+                const titulo = mes
+                    ? `${formatearFecha(mes.FechaInicio)} — ${formatearFecha(mes.FechaFin)}`
+                    : `Mes #${idPM}`;
+                html += `<p class="detalle-label">${titulo}</p>`;
+                html += `<table class="data-table data-table-sm"><thead><tr>
+                    <th>Semana</th><th>Bruto</th><th>Deducciones</th><th>Neto</th>
+                </tr></thead><tbody>`;
+                for (const s of semanasDelMes) {
+                    html += `<tr>
+                        <td>${formatearFecha(s.FechaInicio)} — ${formatearFecha(s.FechaFin)}</td>
+                        <td>${fmt(s.SalarioBruto)}</td>
+                        <td>${fmt(s.TotalDeducciones)}</td>
+                        <td>${fmt(s.SalarioNeto)}</td>
+                    </tr>`;
+                }
+                html += `</tbody></table>`;
+            }
+        }
         return html;
     }
     // ----------------------------------------------------------------

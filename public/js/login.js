@@ -77,7 +77,8 @@ class LoginManager {
                     localStorage.setItem('userId', String(response.usuario?.id ?? ''));
                     if (response.usuario?.idEmpleado) {
                         localStorage.setItem('idEmpleado', String(response.usuario.idEmpleado));
-                    } else {
+                    }
+                    else {
                         localStorage.removeItem('idEmpleado');
                     }
                 }
@@ -85,11 +86,13 @@ class LoginManager {
                 const tipo = response.usuario?.tipo ?? '2';
                 if (tipo === '1') {
                     setTimeout(() => { window.location.href = '/empleados.html'; }, 1000);
-                } else {
+                }
+                else {
                     const idEmpleado = response.usuario?.idEmpleado;
                     if (idEmpleado) {
                         setTimeout(() => { window.location.href = `/empleado-view.html?id=${idEmpleado}`; }, 1000);
-                    } else {
+                    }
+                    else {
                         this.showMessage('No se encontró un empleado activo asociado a este usuario. Contacte al administrador.', 'error');
                     }
                 }
