@@ -2,6 +2,9 @@ import { setEstado as setEstadoEl, logout, escapeHtml } from './utils.js';
 class EmpleadosPage {
     constructor() {
         this.empleadoConsultado = null;
+        this.deletePendienteId = null;
+        // Cache
+        this.puestos = [];
         this.filtroInput = document.getElementById('filtro');
         this.buscarBtn = document.getElementById('buscarBtn');
         this.limpiarBtn = document.getElementById('limpiarBtn');
@@ -14,7 +17,27 @@ class EmpleadosPage {
         this.detalleEstado = document.getElementById('detalleEstado');
         this.detalleCerrarBtn = document.getElementById('detalleCerrarBtn');
         this.logoutBtn = document.getElementById('logoutBtn');
+        this.ingresarBtn = document.getElementById('ingresarBtn');
+        this.empleadoModal = document.getElementById('empleadoModal');
+        this.modalTitle = document.getElementById('modalTitle');
+        this.modalCerrarBtn = document.getElementById('modalCerrarBtn');
+        this.modalCancelarBtn = document.getElementById('modalCancelarBtn');
+        this.empleadoForm = document.getElementById('empleadoForm');
+        this.editEmpleadoId = document.getElementById('editEmpleadoId');
+        this.modalValorDocumento = document.getElementById('modalValorDocumento');
+        this.modalNombre = document.getElementById('modalNombre');
+        this.modalIdPuesto = document.getElementById('modalIdPuesto');
+        this.modalCuentaBancaria = document.getElementById('modalCuentaBancaria');
+        this.modalCredentialFields = document.getElementById('modalCredentialFields');
+        this.modalUsername = document.getElementById('modalUsername');
+        this.modalPassword = document.getElementById('modalPassword');
+        this.modalFechaContratacion = document.getElementById('modalFechaContratacion');
+        this.deleteConfirmModal = document.getElementById('deleteConfirmModal');
+        this.deleteEmpleadoNombre = document.getElementById('deleteEmpleadoNombre');
+        this.deleteCancelarBtn = document.getElementById('deleteCancelarBtn');
+        this.deleteConfirmarBtn = document.getElementById('deleteConfirmarBtn');
         this.bindEvents();
+        void this.cargarPuestos();
         this.cargarEmpleados();
     }
     bindEvents() {
@@ -41,17 +64,50 @@ class EmpleadosPage {
             const button = target?.closest('button[data-accion]');
             if (!button)
                 return;
-            const documento = button.dataset.documento;
-            if (!documento)
-                return;
             const accion = button.dataset.accion;
             if (accion === 'consultar') {
-                void this.consultarEmpleado(documento);
+                const doc = button.dataset.documento;
+                if (doc)
+                    void this.consultarEmpleado(doc);
                 return;
             }
             if (accion === 'impersonar') {
-                void this.impersonarEmpleado(documento);
+                const doc = button.dataset.documento;
+                if (doc)
+                    void this.impersonarEmpleado(doc);
+                return;
             }
+            if (accion === 'editar') {
+                const id = Number(button.dataset.id);
+                if (!isNaN(id))
+                    void this.abrirModalEditar(id);
+                return;
+            }
+            if (accion === 'borrar') {
+                const id = Number(button.dataset.id);
+                const nombre = button.dataset.nombre ?? '';
+                if (!isNaN(id))
+                    void this.iniciarBorrado(id, nombre);
+            }
+        });
+        this.ingresarBtn.addEventListener('click', () => {
+            this.abrirModalCrear();
+        });
+        this.modalCerrarBtn.addEventListener('click', () => {
+            this.cerrarModal();
+        });
+        this.modalCancelarBtn.addEventListener('click', () => {
+            this.cerrarModal();
+        });
+        this.empleadoForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+            void this.guardarEmpleado();
+        });
+        this.deleteCancelarBtn.addEventListener('click', () => {
+            this.cerrarDeleteConfirm();
+        });
+        this.deleteConfirmarBtn.addEventListener('click', () => {
+            void this.ejecutarBorrado();
         });
         if (this.logoutBtn) {
             this.logoutBtn.addEventListener('click', () => {
@@ -62,6 +118,189 @@ class EmpleadosPage {
     cerrarDetalle() {
         this.detallePanel.classList.add('hidden');
         this.empleadoConsultado = null;
+    }
+    // =================== Modal empleado ===================
+    async cargarPuestos() {
+        const token = localStorage.getItem('authToken') || '';
+        const headers = {};
+        if (token)
+            headers['Authorization'] = 'Bearer ' + token;
+        try {
+            const res = await fetch('/api/puestos', { headers });
+            const json = await res.json();
+            if (json.success && json.data) {
+                this.puestos = json.data;
+                this.modalIdPuesto.innerHTML = '<option value="">Seleccione un puesto...</option>';
+                for (const p of this.puestos) {
+                    const opt = document.createElement('option');
+                    opt.value = String(p.id);
+                    opt.textContent = p.Nombre;
+                    this.modalIdPuesto.appendChild(opt);
+                }
+            }
+        }
+        catch { /* ignore */ }
+    }
+    abrirModalCrear() {
+        this.editEmpleadoId.value = '';
+        this.empleadoForm.reset();
+        this.modalTitle.textContent = 'Ingresar empleado';
+        this.modalCredentialFields.style.display = '';
+        this.modalUsername.required = true;
+        this.modalPassword.required = true;
+        this.empleadoModal.classList.remove('hidden');
+    }
+    async abrirModalEditar(id) {
+        const token = localStorage.getItem('authToken') || '';
+        const headers = {};
+        if (token)
+            headers['Authorization'] = 'Bearer ' + token;
+        this.setEstado('Cargando datos del empleado...', 'info');
+        try {
+            const res = await fetch(`/api/empleados/by-id/${id}`, { headers });
+            const json = await res.json();
+            if (!json.success || !json.data) {
+                this.setEstado('No se pudieron cargar los datos del empleado.', 'error');
+                return;
+            }
+            const emp = json.data;
+            this.editEmpleadoId.value = String(emp.id);
+            this.modalValorDocumento.value = emp.ValorDocumento;
+            this.modalNombre.value = emp.Nombre;
+            this.modalIdPuesto.value = String(emp.idPuesto);
+            this.modalCuentaBancaria.value = emp.CuentaBancaria ?? '';
+            if (emp.FechaContratacion) {
+                this.modalFechaContratacion.value = emp.FechaContratacion.substring(0, 10);
+            }
+            else {
+                this.modalFechaContratacion.value = '';
+            }
+            this.modalTitle.textContent = 'Actualizar empleado';
+            this.modalCredentialFields.style.display = 'none';
+            this.modalUsername.required = false;
+            this.modalPassword.required = false;
+            this.empleadoModal.classList.remove('hidden');
+        }
+        catch {
+            this.setEstado('Error de conexión al cargar empleado.', 'error');
+        }
+    }
+    cerrarModal() {
+        this.empleadoModal.classList.add('hidden');
+        this.empleadoForm.reset();
+        this.editEmpleadoId.value = '';
+    }
+    async guardarEmpleado() {
+        const token = localStorage.getItem('authToken') || '';
+        const headers = { 'Content-Type': 'application/json' };
+        if (token)
+            headers['Authorization'] = 'Bearer ' + token;
+        const editId = this.editEmpleadoId.value;
+        const body = {
+            valorDocumento: this.modalValorDocumento.value.trim(),
+            nombre: this.modalNombre.value.trim(),
+            idPuesto: Number(this.modalIdPuesto.value),
+            cuentaBancaria: this.modalCuentaBancaria.value.trim(),
+        };
+        if (this.modalFechaContratacion.value) {
+            body.fechaContratacion = this.modalFechaContratacion.value;
+        }
+        this.setBotones(false);
+        this.setEstado('Guardando...', 'info');
+        try {
+            let url = '/api/empleados';
+            let method = 'POST';
+            if (editId) {
+                url = `/api/empleados/${editId}`;
+                method = 'PATCH';
+            }
+            else {
+                body.username = this.modalUsername.value.trim();
+                body.password = this.modalPassword.value;
+            }
+            const res = await fetch(url, {
+                method,
+                headers,
+                body: JSON.stringify(body),
+            });
+            const json = await res.json();
+            if (!res.ok || !json.success) {
+                this.setEstado(json.message || 'Error al guardar empleado.', 'error');
+                return;
+            }
+            this.cerrarModal();
+            this.setEstado(json.message || (editId ? 'Empleado actualizado.' : 'Empleado creado.'), 'success');
+            await this.cargarEmpleados();
+        }
+        catch {
+            this.setEstado('Error de conexión al guardar.', 'error');
+        }
+        finally {
+            this.setBotones(true);
+        }
+    }
+    // =================== Borrado ===================
+    async iniciarBorrado(id, nombre) {
+        const token = localStorage.getItem('authToken') || '';
+        const headers = { 'Content-Type': 'application/json' };
+        if (token)
+            headers['Authorization'] = 'Bearer ' + token;
+        this.setEstado('Registrando intento de borrado...', 'info');
+        try {
+            const res = await fetch(`/api/empleados/${id}`, {
+                method: 'DELETE',
+                headers,
+                body: JSON.stringify({ confirmado: false }),
+            });
+            const json = await res.json();
+            if (!res.ok || !json.success) {
+                this.setEstado(json.message || 'Error al iniciar borrado.', 'error');
+                return;
+            }
+            this.deletePendienteId = id;
+            this.deleteEmpleadoNombre.textContent = nombre;
+            this.deleteConfirmModal.classList.remove('hidden');
+            this.setEstado('Intento de borrado registrado. Confirma la acción.', 'warning');
+        }
+        catch {
+            this.setEstado('Error de conexión al iniciar borrado.', 'error');
+        }
+    }
+    cerrarDeleteConfirm() {
+        this.deleteConfirmModal.classList.add('hidden');
+        this.deletePendienteId = null;
+    }
+    async ejecutarBorrado() {
+        const id = this.deletePendienteId;
+        if (id === null)
+            return;
+        const token = localStorage.getItem('authToken') || '';
+        const headers = { 'Content-Type': 'application/json' };
+        if (token)
+            headers['Authorization'] = 'Bearer ' + token;
+        this.deleteConfirmarBtn.disabled = true;
+        this.setEstado('Borrando empleado...', 'info');
+        try {
+            const res = await fetch(`/api/empleados/${id}`, {
+                method: 'DELETE',
+                headers,
+                body: JSON.stringify({ confirmado: true }),
+            });
+            const json = await res.json();
+            if (!res.ok || !json.success) {
+                this.setEstado(json.message || 'Error al borrar empleado.', 'error');
+                return;
+            }
+            this.cerrarDeleteConfirm();
+            this.setEstado('Empleado borrado exitosamente.', 'success');
+            await this.cargarEmpleados();
+        }
+        catch {
+            this.setEstado('Error de conexión al borrar.', 'error');
+        }
+        finally {
+            this.deleteConfirmarBtn.disabled = false;
+        }
     }
     async cargarEmpleados() {
         this.cerrarDetalle();
@@ -121,12 +360,20 @@ class EmpleadosPage {
                 <td>${escapeHtml(empleado.ValorDocumento)}</td>
                 <td>${escapeHtml(empleado.NombrePuesto)}</td>
                 <td>
+                    <div class="action-group">
                     <button type="button" class="action-button action-view" data-accion="consultar" data-documento="${escapeHtml(empleado.ValorDocumento)}">
                         Consultar
                     </button>
                     <button type="button" class="action-button action-impersonar" data-accion="impersonar" data-documento="${escapeHtml(empleado.ValorDocumento)}">
                         Impersonar
                     </button>
+                    <button type="button" class="action-button action-edit" data-accion="editar" data-id="${empleado.id}" data-nombre="${escapeHtml(empleado.Nombre)}">
+                        Editar
+                    </button>
+                    <button type="button" class="action-button action-delete" data-accion="borrar" data-id="${empleado.id}" data-nombre="${escapeHtml(empleado.Nombre)}">
+                        Borrar
+                    </button>
+                    </div>
                 </td>
             `;
             this.empleadosBody.appendChild(fila);
@@ -255,6 +502,7 @@ class EmpleadosPage {
     setBotones(habilitado) {
         this.buscarBtn.disabled = !habilitado;
         this.limpiarBtn.disabled = !habilitado;
+        this.ingresarBtn.disabled = !habilitado;
     }
 }
 document.addEventListener('DOMContentLoaded', () => {

@@ -26,9 +26,12 @@
 
         <main class="page-content empleados-shell">
             <header class="empleados-header">
-                <div>
-                    <h1>Lista de empleados</h1>
-                    <p class="subtitle">Consulta, filtro y administración básica de empleados</p>
+                <div class="header-btn-row">
+                    <div>
+                        <h1>Lista de empleados</h1>
+                        <p class="subtitle">Consulta, filtro y administración básica de empleados</p>
+                    </div>
+                    <button id="ingresarBtn" class="primary-btn" type="button">+ Ingresar empleado</button>
                 </div>
             </header>
 
@@ -81,6 +84,79 @@
                 <div id="detalleContenido" class="detalle-contenido"></div>
             </section>
         </main>
+    </div>
+
+    <!-- Modal: Ingresar / Actualizar empleado -->
+    <div id="empleadoModal" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="modalTitle">Ingresar empleado</h2>
+                <button id="modalCerrarBtn" class="ghost-btn" type="button" title="Cerrar">&times;</button>
+            </div>
+            <form id="empleadoForm">
+                <input type="hidden" id="editEmpleadoId" value="">
+
+                <div class="form-group">
+                    <label for="modalValorDocumento">Valor Documento</label>
+                    <input id="modalValorDocumento" type="text" placeholder="Cédula / Pasaporte" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="modalNombre">Nombre</label>
+                    <input id="modalNombre" type="text" placeholder="Nombre completo" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="modalIdPuesto">Puesto</label>
+                    <select id="modalIdPuesto" required>
+                        <option value="">Seleccione un puesto...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="modalCuentaBancaria">Cuenta Bancaria</label>
+                    <input id="modalCuentaBancaria" type="text" placeholder="Número de cuenta" required>
+                </div>
+
+                <div id="modalCredentialFields">
+                    <div class="form-group">
+                        <label for="modalUsername">Username</label>
+                        <input id="modalUsername" type="text" placeholder="Nombre de usuario">
+                    </div>
+                    <div class="form-group">
+                        <label for="modalPassword">Password</label>
+                        <input id="modalPassword" type="password" placeholder="Contraseña">
+                    </div>
+                </div>
+                <p class="credential-notice">* Username y Password solo se usan al crear un nuevo empleado.</p>
+
+                <div class="form-group">
+                    <label for="modalFechaContratacion">Fecha de Contratación</label>
+                    <input id="modalFechaContratacion" type="date">
+                </div>
+
+                <div class="modal-actions">
+                    <button id="modalCancelarBtn" class="ghost-btn" type="button">Cancelar</button>
+                    <button id="modalGuardarBtn" class="primary-btn" type="submit">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Confirmación de borrado -->
+    <div id="deleteConfirmModal" class="modal-overlay hidden">
+        <div class="modal modal-sm">
+            <div class="modal-header">
+                <h2>Confirmar borrado</h2>
+            </div>
+            <div class="delete-msg" id="deleteConfirmMsg">
+                ¿Está seguro de borrar al empleado <strong id="deleteEmpleadoNombre"></strong>?
+            </div>
+            <div class="modal-actions">
+                <button id="deleteCancelarBtn" class="ghost-btn" type="button">Cancelar</button>
+                <button id="deleteConfirmarBtn" class="danger-btn" type="button">Borrar empleado</button>
+            </div>
+        </div>
     </div>
 
     <script type="module" src="js/empleados.js"></script>
