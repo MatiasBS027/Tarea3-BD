@@ -57,6 +57,49 @@ export const validateGetEmpleadoByIdInt = [
     handleValidationErrors,
 ];
 
+export const validateInsertEmpleado = [
+    body('valorDocumento')
+        .trim().notEmpty().withMessage('valorDocumento requerido')
+        .isLength({ max: 32 }).withMessage('valorDocumento max 32 caracteres'),
+    body('nombre')
+        .trim().notEmpty().withMessage('nombre requerido')
+        .isLength({ max: 128 }).withMessage('nombre max 128 caracteres'),
+    body('idPuesto')
+        .isInt({ min: 1 }).withMessage('idPuesto debe ser un entero positivo'),
+    body('cuentaBancaria')
+        .trim().notEmpty().withMessage('cuentaBancaria requerida')
+        .isLength({ max: 32 }).withMessage('cuentaBancaria max 32 caracteres'),
+    body('username')
+        .trim().notEmpty().withMessage('username requerido')
+        .isLength({ max: 64 }).withMessage('username max 64 caracteres'),
+    body('password')
+        .notEmpty().withMessage('password requerido'),
+    handleValidationErrors,
+];
+
+export const validateUpdateEmpleado = [
+    param('id')
+        .isInt({ min: 1 }).withMessage('id debe ser un entero positivo'),
+    body('valorDocumento')
+        .trim().notEmpty().withMessage('valorDocumento requerido')
+        .isLength({ max: 32 }).withMessage('valorDocumento max 32 caracteres'),
+    body('nombre')
+        .trim().notEmpty().withMessage('nombre requerido')
+        .isLength({ max: 128 }).withMessage('nombre max 128 caracteres'),
+    body('idPuesto')
+        .isInt({ min: 1 }).withMessage('idPuesto debe ser un entero positivo'),
+    body('cuentaBancaria')
+        .trim().notEmpty().withMessage('cuentaBancaria requerida')
+        .isLength({ max: 32 }).withMessage('cuentaBancaria max 32 caracteres'),
+    handleValidationErrors,
+];
+
+export const validateDeleteEmpleado = [
+    param('id')
+        .isInt({ min: 1 }).withMessage('id debe ser un entero positivo'),
+    handleValidationErrors,
+];
+
 // --- Bitácora ---
 export const validateGetBitacora = [
     query('idTipoEvento')
