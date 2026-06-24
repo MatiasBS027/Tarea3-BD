@@ -36,7 +36,7 @@ Sistema completo de control de asistencia y planilla obrera. Administra empleado
 ## Funcionalidades
 
 - **Autenticación** de usuarios con roles administrador (`Tipo=1`) y empleado (`Tipo=2`) mediante tokens base64.
-- **CRUD conceptual** de empleados con búsqueda por nombre y valor de documento.
+- **CRUD completo** de empleados: crear (con creación automática de usuario + asignación de deducciones obligatorias vía trigger), consultar, editar y eliminar (soft-delete en dos fases) con búsqueda por nombre y documento.
 - **Ciclo de planilla semanal** (viernes → jueves) con cierre automático cada jueves.
 - **Ciclo de planilla mensual** (último viernes → último jueves) que agrega 4 o 5 semanas.
 - **Cálculo de horas extras**: ordinarias (1.0×), extras normales (1.5×), extras dobles en domingos y feriados (2.0×). Solo se pagan horas completas.
@@ -205,6 +205,9 @@ Todas las rutas bajo `/api`. Solo `/health` y `POST /api/auth/login` no requiere
 | `POST` | `/api/auth/login` | ✗ | ✗ | Inicio de sesión |
 | `POST` | `/api/auth/logout` | ✓ | ✗ | Cierre de sesión |
 | `GET` | `/api/empleados` | ✓ | ✓ | Lista de empleados activos |
+| `POST` | `/api/empleados` | ✓ | ✓ | Crear empleado (crea Usuario + Empleado, trigger asigna deducciones obligatorias) |
+| `PATCH` | `/api/empleados/:id` | ✓ | ✓ | Actualizar empleado (documento, nombre, puesto, cuenta bancaria) |
+| `DELETE` | `/api/empleados/:id` | ✓ | ✓ | Eliminar empleado (soft-delete en dos fases: intento → confirmación) |
 | `GET` | `/api/empleados/:doc` | ✓ | ✓ | Empleado por documento |
 | `GET` | `/api/empleados/by-id/:id` | ✓ | ✗ | Empleado por ID interno |
 | `POST` | `/api/empleados/impersonar` | ✓ | ✓ | Impersonar empleado |
@@ -234,7 +237,7 @@ Todas las rutas bajo `/api`. Solo `/health` y `POST /api/auth/login` no requiere
 | Página | Archivo | Descripción |
 |--------|---------|-------------|
 | Login | `login.html` | Formulario de inicio de sesión con contador de bloqueo |
-| Empleados | `empleados.html` | Lista de empleados con filtro por nombre/documento e impersonación |
+| Empleados | `empleados.html` | Lista de empleados con filtro, detalle, impersonación, **y CRUD completo: modal de creación/edición y borrado en dos fases con confirmación** |
 | Employee-View | `empleado-view.html` | Planilla semanal y mensual con desglose diario |
 | Bitácora | `bitacora.html` | Visor de eventos con filtros y paginación |
 | Index | `index.html` | Redirecciona a login o empleados según sesión |
@@ -253,6 +256,9 @@ Tema oscuro con sidebar responsivo de 280px y soporte para `prefers-reduced-moti
 **Empleados**
 - `sp_GetEmpleados` / `sp_GetEmpleadoById` / `sp_GetEmpleadoByIdInt`
 - `sp_GetEmpleadoIdByUsuario`
+- `sp_InsertarEmpleado` — crea Usuario + Empleado en una transacción; el trigger asigna deducciones obligatorias
+- `sp_UpdateEmpleado` — actualiza datos básicos con auditoría de antes/después
+- `sp_DeleteEmpleado` — soft-delete en dos fases (intento + confirmación)
 - `sp_ImpersonarEmpleado` / `sp_RegresarAdmin`
 
 **Catálogos**
@@ -290,7 +296,7 @@ El test suite contiene 16 pruebas unitarias sobre el middleware de autenticació
 | 50002 | 401 | Contraseña incorrecta |
 | 50003 | 403 | Login bloqueado (5 intentos fallidos en 20 min) |
 | 50004 | 409 | Documento duplicado en inserción |
-| 50005 | 409 | Nombre duplicado en inserción |
+| 50005 | 409 | Nombre duplicado en inserción (también usado para username duplicado) |
 | 50006 | 409 | Documento duplicado en actualización |
 | 50007 | 409 | Nombre duplicado en actualización |
 | 50008 | 500 | Error de base de datos |
